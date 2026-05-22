@@ -7,6 +7,7 @@ import {
   type OcrStatus,
 } from './features/ocr/OcrPanel'
 import { useScoreRules } from './hooks/useScoreRules'
+import { strings } from './i18n/strings'
 import './App.css'
 
 type AppView = 'ocr' | 'settings'
@@ -18,33 +19,33 @@ function App() {
 
   return (
     <main className="ocr-shell">
-      <section className="workspace" aria-label="OCR demo workspace">
+      <section className="workspace" aria-label={strings.app.workspaceLabel}>
         <header className="topbar">
           <div className="brand">
             <span className="brand-mark">
               <Icon name="scan" />
             </span>
             <span>
-              <span className="app-title">DragonScore</span>
+              <span className="app-title">{strings.app.title}</span>
             </span>
           </div>
           <OcrStatusPill status={ocrStatus} />
         </header>
 
-        <nav className="view-tabs" aria-label="主要視圖">
+        <nav className="view-tabs" aria-label={strings.app.tabsLabel}>
           <button
             type="button"
             className={activeView === 'ocr' ? 'is-active' : ''}
             onClick={() => setActiveView('ocr')}
           >
-            OCR
+            {strings.app.tabs.ocr}
           </button>
           <button
             type="button"
             className={activeView === 'settings' ? 'is-active' : ''}
             onClick={() => setActiveView('settings')}
           >
-            設定
+            {strings.app.tabs.settings}
           </button>
         </nav>
 
@@ -73,7 +74,7 @@ function App() {
         </div>
       </section>
 
-      <footer className="app-subtitle">Powered by ppu-paddle-ocr/web</footer>
+      <footer className="app-bottom">{strings.app.poweredBy}</footer>
     </main>
   )
 }

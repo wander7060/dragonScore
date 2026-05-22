@@ -3,6 +3,7 @@ import type {
   AmbiguousMatchResolution,
   FuzzySentenceOptions,
   LineMatch,
+  LineGroupingOptions,
   MatchCandidate,
   OcrResult,
   RecognizedLine,
@@ -10,14 +11,16 @@ import type {
   ScoreSummary,
 } from '../types/scoring'
 
-const LINE_CENTER_THRESHOLD_RATIO = 0.55
-
 export const DEFAULT_FUZZY_SENTENCE_OPTIONS: FuzzySentenceOptions = {
   minKeywordLength: 8,
   minSimilarity: 0.88,
   minScoreGap: 0.05,
   maxRawDistance: 3,
   maxDistanceRatio: 0.18,
+}
+
+export const DEFAULT_LINE_GROUPING_OPTIONS: LineGroupingOptions = {
+  centerThresholdRatio: 0.55,
 }
 
 interface IndexedScoreRule {
@@ -61,7 +64,10 @@ function updateBucket(bucket: LineBucket) {
   bucket.centerY = totalCenter / bucket.items.length
 }
 
-export function groupOcrResultsIntoLines(results: OcrResult[]): RecognizedLine[] {
+export function groupOcrResultsIntoLines(
+  results: OcrResult[],
+  options: LineGroupingOptions = DEFAULT_LINE_GROUPING_OPTIONS,
+): RecognizedLine[] {
   const sortedResults = [...results].sort((first, second) => {
     const yDiff = getCenterY(first) - getCenterY(second)
 
@@ -79,7 +85,7 @@ export function groupOcrResultsIntoLines(results: OcrResult[]): RecognizedLine[]
     const matchingBucket = buckets.find((bucket) => {
       const threshold =
         Math.max(bucket.averageHeight, result.box.height) *
-        LINE_CENTER_THRESHOLD_RATIO
+        options.centerThresholdRatio
 
       return Math.abs(centerY - bucket.centerY) <= threshold
     })
@@ -482,6 +488,11 @@ export function calculateScore(
   results: OcrResult[],
   rules: ScoreRule[],
   resolutions: AmbiguousMatchResolution[] = [],
+  lineGroupingOptions: LineGroupingOptions = DEFAULT_LINE_GROUPING_OPTIONS,
 ): ScoreSummary {
-  return scoreRecognizedLines(groupOcrResultsIntoLines(results), rules, resolutions)
+  return scoreRecognizedLines(
+    groupOcrResultsIntoLines(results, lineGroupingOptions),
+    rules,
+    resolutions,
+  )
 }

@@ -1,10 +1,16 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { PaddleOcrService } from 'ppu-paddle-ocr/web'
+import { HighlightedText } from '../../components/HighlightedText'
 import { Icon } from '../../components/Icon'
 import { ScoreSummaryPanel } from '../../components/ScoreSummaryPanel'
-import { calculateScore } from '../../lib/scoring'
+import { strings } from '../../i18n/strings'
+import {
+  DEFAULT_LINE_GROUPING_OPTIONS,
+  calculateScore,
+} from '../../lib/scoring'
 import type {
   AmbiguousMatchResolution,
+  LineMatch,
   OcrResult,
   ScoreRule,
 } from '../../types/scoring'
@@ -34,12 +40,16 @@ interface CachedOcrService {
 }
 
 const statusLabel: Record<OcrStatus, string> = {
-  idle: '待命',
-  loading_model: '模型初始化',
-  recognizing: '影像分析',
-  success: '完成',
-  error: '錯誤',
+  idle: strings.ocr.statusLabels.idle,
+  loading_model: strings.ocr.statusLabels.loading_model,
+  recognizing: strings.ocr.statusLabels.recognizing,
+  success: strings.ocr.statusLabels.success,
+  error: strings.ocr.statusLabels.error,
 }
+
+const MIN_LINE_MERGE_DISTANCE_RATIO = 0.1
+const MAX_LINE_MERGE_DISTANCE_RATIO = 2
+const LINE_MERGE_DISTANCE_STEP = 0.05
 
 function formatScore(score: number) {
   const text = Number.isInteger(score)
@@ -47,6 +57,49 @@ function formatScore(score: number) {
     : score.toFixed(2).replace(/\.?0+$/, '')
 
   return score > 0 ? `+${text}` : text
+}
+
+function formatLineMergeDistance(ratio: number) {
+  return `${ratio.toFixed(2)}x`
+}
+
+function formatSimilarity(similarity?: number) {
+  if (similarity === undefined) {
+    return ''
+  }
+
+  return `${(similarity * 100).toFixed(1)}%`
+}
+
+function getMatchStatus(match: LineMatch) {
+  if (match.ambiguous && !match.resolvedByUser) {
+    return strings.score.status.pending
+  }
+
+  if (match.ambiguous && match.resolvedByUser) {
+    return match.counted
+      ? strings.score.status.selectedCounted
+      : strings.score.status.selectedNotCounted
+  }
+
+  return match.counted
+    ? strings.score.status.counted
+    : strings.score.status.notCounted
+}
+
+function getLineConfidence(items: OcrResult[]) {
+  if (items.length === 0) {
+    return 0
+  }
+
+  return items.reduce((sum, item) => sum + item.confidence, 0) / items.length
+}
+
+function clampLineMergeDistanceRatio(value: number) {
+  return Math.min(
+    MAX_LINE_MERGE_DISTANCE_RATIO,
+    Math.max(MIN_LINE_MERGE_DISTANCE_RATIO, value),
+  )
 }
 
 export function OcrStatusPill({ status }: { status: OcrStatus }) {
@@ -68,21 +121,48 @@ export function OcrPanel({ isActive, rules, onStatusChange }: OcrPanelProps) {
   const [errorMsg, setErrorMsg] = useState('')
   const [copyState, setCopyState] = useState<'idle' | 'copied'>('idle')
   const [language, setLanguage] = useState<OcrLanguage>('chinese')
+  const [lineMergeDistanceRatio, setLineMergeDistanceRatio] = useState(
+    DEFAULT_LINE_GROUPING_OPTIONS.centerThresholdRatio,
+  )
   const [ambiguousResolutions, setAmbiguousResolutions] = useState<
     AmbiguousMatchResolution[]
   >([])
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const serviceRef = useRef<CachedOcrService | null>(null)
   const scoreSummary = useMemo(
-    () => calculateScore(results, rules, ambiguousResolutions),
-    [ambiguousResolutions, results, rules],
+    () =>
+      calculateScore(results, rules, ambiguousResolutions, {
+        centerThresholdRatio: lineMergeDistanceRatio,
+      }),
+    [ambiguousResolutions, lineMergeDistanceRatio, results, rules],
   )
   const scoreByResult = useMemo(
     () =>
       new Map(scoreSummary.itemScores.map(({ item, score }) => [item, score])),
     [scoreSummary],
   )
+  const matchByLine = useMemo(
+    () => new Map(scoreSummary.matches.map((match) => [match.lineId, match])),
+    [scoreSummary],
+  )
   const selectedLanguage = ocrLanguageOptions.find((option) => option.id === language)
+
+  const updateLineMergeDistanceRatio = (value: string) => {
+    const nextValue = Number(value)
+
+    if (!Number.isFinite(nextValue)) {
+      return
+    }
+
+    const nextRatio = clampLineMergeDistanceRatio(nextValue)
+
+    if (nextRatio === lineMergeDistanceRatio) {
+      return
+    }
+
+    setAmbiguousResolutions([])
+    setLineMergeDistanceRatio(nextRatio)
+  }
 
   const processFile = useCallback((file?: File | null) => {
     if (!file) {
@@ -90,7 +170,7 @@ export function OcrPanel({ isActive, rules, onStatusChange }: OcrPanelProps) {
     }
 
     if (!file.type.startsWith('image/')) {
-      setErrorMsg('請上傳有效的圖片檔案。')
+      setErrorMsg(strings.ocr.errors.invalidImage)
       setStatus('error')
       return
     }
@@ -165,7 +245,7 @@ export function OcrPanel({ isActive, rules, onStatusChange }: OcrPanelProps) {
 
   const runOcr = async () => {
     if (!imageFile || !previewUrl) {
-      setErrorMsg('請先選擇圖片。')
+      setErrorMsg(strings.ocr.errors.chooseImageFirst)
       setStatus('error')
       return
     }
@@ -199,27 +279,29 @@ export function OcrPanel({ isActive, rules, onStatusChange }: OcrPanelProps) {
       setStatus('success')
 
       if (nextResults.length === 0) {
-        setErrorMsg('PaddleOCR 沒有從這張圖片辨識出文字。')
+        setErrorMsg(strings.ocr.errors.noTextDetected)
       }
     } catch (error) {
       console.error(error)
       const message =
-        error instanceof Error ? error.message : '辨識過程中發生未知錯誤。'
+        error instanceof Error ? error.message : strings.ocr.errors.unknownRecognition
 
-      setErrorMsg(`PaddleOCR 辨識失敗：${message}`)
+      setErrorMsg(strings.ocr.errors.recognitionFailed(message))
       setStatus('error')
     }
   }
 
   const copyAllText = async () => {
-    const allText = results.map((result) => result.text).join('\n')
+    const allText = scoreSummary.recognizedLines
+      .map((line) => line.text)
+      .join('\n')
 
     try {
       await navigator.clipboard.writeText(allText)
       setCopyState('copied')
       window.setTimeout(() => setCopyState('idle'), 1600)
     } catch {
-      setErrorMsg('無法寫入剪貼簿。')
+      setErrorMsg(strings.ocr.errors.clipboardWrite)
       setStatus('error')
     }
   }
@@ -266,138 +348,181 @@ export function OcrPanel({ isActive, rules, onStatusChange }: OcrPanelProps) {
 
   return (
     <div className="ocr-grid">
-      <section className="panel media-panel" aria-labelledby="image-source-title">
-        <div className="panel-header">
-          <h2 id="image-source-title">
-            <Icon name="image" />
-            圖片來源
-          </h2>
-          {previewUrl && (
-            <button
-              type="button"
-              className="icon-button danger"
-              onClick={clearImage}
-              aria-label="清除圖片"
-              title="清除圖片"
-            >
-              <Icon name="trash" />
-            </button>
-          )}
-        </div>
+      <div className="ocr-source-column">
+        <section className="panel media-panel" aria-labelledby="image-source-title">
+          <div className="panel-header">
+            <h2 id="image-source-title">
+              <Icon name="image" />
+              {strings.ocr.imageSourceTitle}
+            </h2>
+            {previewUrl && (
+              <button
+                type="button"
+                className="icon-button danger"
+                onClick={clearImage}
+                aria-label={strings.ocr.clearImage}
+                title={strings.ocr.clearImage}
+              >
+                <Icon name="trash" />
+              </button>
+            )}
+          </div>
 
-        <div className="panel-body">
-          {!previewUrl ? (
-            <button
-              type="button"
-              className={`dropzone ${isDragging ? 'is-dragging' : ''}`}
-              onClick={() => fileInputRef.current?.click()}
-              onDragLeave={(event) => {
-                event.preventDefault()
-                setIsDragging(false)
-              }}
-              onDragOver={(event) => {
-                event.preventDefault()
-                setIsDragging(true)
-              }}
-              onDrop={(event) => {
-                event.preventDefault()
-                setIsDragging(false)
-                processFile(event.dataTransfer.files.item(0))
-              }}
-            >
-              <Icon name="upload" className="dropzone-icon" />
-              <span className="dropzone-title">選擇圖片</span>
-              <span className="dropzone-meta">拖放圖片或貼上剪貼簿影像</span>
-            </button>
-          ) : (
-            <div className="preview-frame">
-              <div className="image-stage">
-                <img src={previewUrl} alt={imageFile?.name ?? 'OCR preview'} />
-                {imageDimensions.width > 0 &&
-                  imageDimensions.height > 0 &&
-                  results.map((result, index) => (
-                    <span
-                      className="bbox"
-                      key={`${result.text}-${index}`}
-                      style={{
-                        left: `${(result.box.x / imageDimensions.width) * 100}%`,
-                        top: `${(result.box.y / imageDimensions.height) * 100}%`,
-                        width: `${(result.box.width / imageDimensions.width) * 100}%`,
-                        height: `${(result.box.height / imageDimensions.height) * 100}%`,
-                      }}
-                    >
-                      <span className="bbox-tooltip">
-                        {result.text} {(result.confidence * 100).toFixed(0)}%
+          <div className="panel-body">
+            {!previewUrl ? (
+              <button
+                type="button"
+                className={`dropzone ${isDragging ? 'is-dragging' : ''}`}
+                onClick={() => fileInputRef.current?.click()}
+                onDragLeave={(event) => {
+                  event.preventDefault()
+                  setIsDragging(false)
+                }}
+                onDragOver={(event) => {
+                  event.preventDefault()
+                  setIsDragging(true)
+                }}
+                onDrop={(event) => {
+                  event.preventDefault()
+                  setIsDragging(false)
+                  processFile(event.dataTransfer.files.item(0))
+                }}
+              >
+                <Icon name="upload" className="dropzone-icon" />
+                <span className="dropzone-title">{strings.ocr.uploadTitle}</span>
+                <span className="dropzone-meta">{strings.ocr.uploadMeta}</span>
+              </button>
+            ) : (
+              <div className="preview-frame">
+                <div className="image-stage">
+                  <img
+                    src={previewUrl}
+                    alt={imageFile?.name ?? strings.ocr.previewAlt}
+                  />
+                  {imageDimensions.width > 0 &&
+                    imageDimensions.height > 0 &&
+                    results.map((result, index) => (
+                      <span
+                        className="bbox"
+                        key={`${result.text}-${index}`}
+                        style={{
+                          left: `${(result.box.x / imageDimensions.width) * 100}%`,
+                          top: `${(result.box.y / imageDimensions.height) * 100}%`,
+                          width: `${(result.box.width / imageDimensions.width) * 100}%`,
+                          height: `${(result.box.height / imageDimensions.height) * 100}%`,
+                        }}
+                      >
+                        <span className="bbox-tooltip">
+                          {result.text} {(result.confidence * 100).toFixed(0)}%
+                        </span>
                       </span>
-                    </span>
-                  ))}
+                    ))}
+                </div>
               </div>
-            </div>
+            )}
+
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="visually-hidden"
+              onChange={(event) => processFile(event.target.files?.item(0))}
+            />
+          </div>
+
+          {imageFile && (
+            <dl className="file-meta">
+              <div>
+                <dt>{strings.ocr.fileName}</dt>
+                <dd>{imageFile.name}</dd>
+              </div>
+              <div>
+                <dt>{strings.ocr.dimensions}</dt>
+                <dd>
+                  {imageDimensions.width} x {imageDimensions.height}
+                </dd>
+              </div>
+              <div>
+                <dt>{strings.ocr.fileSize}</dt>
+                <dd>{(imageFile.size / 1024).toFixed(1)} KB</dd>
+              </div>
+            </dl>
           )}
+        </section>
 
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            className="visually-hidden"
-            onChange={(event) => processFile(event.target.files?.item(0))}
-          />
-        </div>
+        <section
+          className="panel recognition-settings-panel"
+          aria-labelledby="recognition-settings-title"
+        >
+          <div className="panel-header">
+            <h2 id="recognition-settings-title">
+              <Icon name="scan" />
+              {strings.ocr.recognitionSettingsTitle}
+            </h2>
+          </div>
+          <div className="panel-body recognition-settings-body">
+            <label className="language-field">
+              <span>{strings.ocr.languageLabel}</span>
+              <select
+                value={language}
+                onChange={(event) =>
+                  changeLanguage(event.target.value as OcrLanguage)
+                }
+                disabled={isBusy}
+              >
+                {ocrLanguageOptions.map((option) => (
+                  <option key={option.id} value={option.id}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
 
-        {imageFile && (
-          <dl className="file-meta">
-            <div>
-              <dt>檔名</dt>
-              <dd>{imageFile.name}</dd>
-            </div>
-            <div>
-              <dt>尺寸</dt>
-              <dd>
-                {imageDimensions.width} x {imageDimensions.height}
-              </dd>
-            </div>
-            <div>
-              <dt>大小</dt>
-              <dd>{(imageFile.size / 1024).toFixed(1)} KB</dd>
-            </div>
-          </dl>
-        )}
-      </section>
+            {selectedLanguage && (
+              <p className="language-meta">{selectedLanguage.description}</p>
+            )}
+
+            <label className="line-merge-field">
+              <span>{strings.ocr.lineMergeLabel}</span>
+              <strong>{formatLineMergeDistance(lineMergeDistanceRatio)}</strong>
+              <input
+                type="range"
+                min={MIN_LINE_MERGE_DISTANCE_RATIO}
+                max={MAX_LINE_MERGE_DISTANCE_RATIO}
+                step={LINE_MERGE_DISTANCE_STEP}
+                value={lineMergeDistanceRatio}
+                onChange={(event) =>
+                  updateLineMergeDistanceRatio(event.target.value)
+                }
+                disabled={isBusy}
+              />
+              <small>
+                {strings.ocr.lineMergeHint(
+                  formatLineMergeDistance(lineMergeDistanceRatio),
+                )}
+              </small>
+            </label>
+          </div>
+        </section>
+      </div>
 
       <section className="panel result-panel" aria-labelledby="ocr-result-title">
         <div className="panel-header">
           <h2 id="ocr-result-title">
             <Icon name="scan" />
-            辨識結果
+            {strings.ocr.resultTitle}
           </h2>
           {results.length > 0 && (
             <button type="button" className="copy-button" onClick={copyAllText}>
               <Icon name="copy" />
-              {copyState === 'copied' ? '已複製' : '複製全部'}
+              {copyState === 'copied'
+                ? strings.ocr.copyCopied
+                : strings.ocr.copyAll}
             </button>
           )}
         </div>
 
         <div className="panel-body result-body">
-          <label className="language-field">
-            <span>辨識語言</span>
-            <select
-              value={language}
-              onChange={(event) => changeLanguage(event.target.value as OcrLanguage)}
-              disabled={isBusy}
-            >
-              {ocrLanguageOptions.map((option) => (
-                <option key={option.id} value={option.id}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          {selectedLanguage && (
-            <p className="language-meta">{selectedLanguage.description}</p>
-          )}
-
           <button
             type="button"
             className="run-button"
@@ -406,10 +531,10 @@ export function OcrPanel({ isActive, rules, onStatusChange }: OcrPanelProps) {
           >
             {isBusy && <span className="spinner" aria-hidden="true" />}
             {status === 'loading_model'
-              ? '初始化 AI 模型中...'
+              ? strings.ocr.runLoadingModel
               : status === 'recognizing'
-                ? '影像特徵分析中...'
-                : '開始文字辨識'}
+                ? strings.ocr.runRecognizing
+                : strings.ocr.runIdle}
           </button>
 
           {errorMsg && (
@@ -421,33 +546,132 @@ export function OcrPanel({ isActive, rules, onStatusChange }: OcrPanelProps) {
 
           <div className="results-box">
             {results.length > 0 ? (
-              <ul className="result-list" aria-label="OCR results">
-                {results.map((result, index) => {
-                  const itemScore = scoreByResult.get(result) ?? 0
+              <ul className="result-list" aria-label={strings.ocr.resultsAria}>
+                {scoreSummary.recognizedLines.map((line) => {
+                  const itemScore = line.items.reduce(
+                    (sum, item) => sum + (scoreByResult.get(item) ?? 0),
+                    0,
+                  )
+                  const confidence = getLineConfidence(line.items)
+                  const lineMatch = matchByLine.get(line.id)
+                  const isPendingAmbiguous = Boolean(
+                    lineMatch?.ambiguous && !lineMatch.resolvedByUser,
+                  )
 
                   return (
-                    <li className="result-item" key={`${result.text}-${index}`}>
+                    <li
+                      className={`result-item ${
+                        isPendingAmbiguous ? 'is-ambiguous' : ''
+                      }`}
+                      key={line.id}
+                    >
                       <Icon name="check" className="result-check" />
                       <div className="result-copy">
-                        <p>{result.text}</p>
+                        <p>
+                          {lineMatch ? (
+                            <HighlightedText
+                              text={line.text}
+                              keyword={
+                                lineMatch.matchType === 'exact'
+                                  ? lineMatch.keyword
+                                  : undefined
+                              }
+                            />
+                          ) : (
+                            line.text
+                          )}
+                        </p>
                         <div className="confidence-row">
                           <span className="confidence-bar">
                             <span
                               className="confidence-fill"
                               data-level={
-                                result.confidence > 0.8
+                                confidence > 0.8
                                   ? 'high'
-                                  : result.confidence > 0.5
+                                  : confidence > 0.5
                                     ? 'medium'
                                     : 'low'
                               }
-                              style={{ width: `${result.confidence * 100}%` }}
+                              style={{ width: `${confidence * 100}%` }}
                             />
                           </span>
                           <span className="confidence-value">
-                            {(result.confidence * 100).toFixed(0)}%
+                            {(confidence * 100).toFixed(0)}%
                           </span>
                         </div>
+
+                        {lineMatch && (
+                          <div className="result-match-details">
+                            <div className="line-match-meta">
+                              <span className="line-match-badge">
+                                {strings.score.matchTypes[lineMatch.matchType]}
+                              </span>
+                              {lineMatch.ambiguous && (
+                                <span className="line-match-badge warning">
+                                  {lineMatch.resolvedByUser
+                                  ? strings.score.status.ambiguityResolved
+                                  : strings.score.status.pending}
+                                </span>
+                              )}
+                              {!isPendingAmbiguous && (
+                                <span
+                                  className={`line-match-badge ${
+                                    lineMatch.counted ? '' : 'muted'
+                                  }`}
+                                >
+                                  {getMatchStatus(lineMatch)}
+                                </span>
+                              )}
+                              {lineMatch.matchType === 'fuzzy' && (
+                                <span className="line-match-badge muted">
+                                  {strings.score.similarityDistance(
+                                    formatSimilarity(lineMatch.similarity),
+                                    lineMatch.rawDistance ?? 0,
+                                  )}
+                                </span>
+                              )}
+                            </div>
+                            {!isPendingAmbiguous && (
+                              <div className="line-match-keyword">
+                                <span>{lineMatch.keyword}</span>
+                                <b>{formatScore(lineMatch.score)}</b>
+                              </div>
+                            )}
+                            {lineMatch.ambiguous && lineMatch.ambiguousOptions && (
+                              <label className="ambiguous-select-field">
+                                <span>{strings.score.ambiguousPrompt}</span>
+                                <select
+                                  value={
+                                    lineMatch.resolvedByUser
+                                      ? lineMatch.ruleId
+                                      : ''
+                                  }
+                                  onChange={(event) =>
+                                    changeAmbiguousResolution(
+                                      lineMatch.lineId,
+                                      event.target.value || null,
+                                    )
+                                  }
+                                >
+                                  <option value="">{strings.score.noApply}</option>
+                                  {lineMatch.ambiguousOptions.map((option) => (
+                                    <option
+                                      key={`${lineMatch.lineId}-${option.ruleId}`}
+                                      value={option.ruleId}
+                                    >
+                                      {strings.score.ambiguousOption(
+                                        option.keyword,
+                                        option.score,
+                                        formatSimilarity(option.similarity),
+                                        option.rawDistance,
+                                      )}
+                                    </option>
+                                  ))}
+                                </select>
+                              </label>
+                            )}
+                          </div>
+                        )}
                       </div>
                       <span
                         className="result-score"
@@ -458,7 +682,7 @@ export function OcrPanel({ isActive, rules, onStatusChange }: OcrPanelProps) {
                               ? 'negative'
                               : 'zero'
                         }
-                        aria-label={`項目分數 ${itemScore}`}
+                        aria-label={strings.ocr.itemScoreAria(itemScore)}
                       >
                         {formatScore(itemScore)}
                       </span>
@@ -473,14 +697,14 @@ export function OcrPanel({ isActive, rules, onStatusChange }: OcrPanelProps) {
                     <span className="large-spinner" aria-hidden="true" />
                     <p>
                       {status === 'loading_model'
-                        ? 'Loading OCR Weights...'
-                        : 'Processing Image...'}
+                        ? strings.ocr.loadingWeights
+                        : strings.ocr.processingImage}
                     </p>
                   </>
                 ) : (
                   <>
                     <Icon name="scan" />
-                    <p>等待辨識</p>
+                    <p>{strings.ocr.waitingRecognition}</p>
                   </>
                 )}
               </div>
@@ -490,7 +714,6 @@ export function OcrPanel({ isActive, rules, onStatusChange }: OcrPanelProps) {
           <ScoreSummaryPanel
             rulesCount={rules.length}
             summary={scoreSummary}
-            onAmbiguousResolutionChange={changeAmbiguousResolution}
           />
         </div>
       </section>

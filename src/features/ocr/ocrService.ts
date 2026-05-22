@@ -3,6 +3,7 @@ import type {
   PaddleOptions,
   RecognitionResult,
 } from 'ppu-paddle-ocr/web'
+import { strings } from '../../i18n/strings'
 import type { OcrResult } from '../../types/scoring'
 
 export type OcrLanguage = 'chinese' | 'english'
@@ -21,13 +22,13 @@ const DICT_BASE_URL =
 export const ocrLanguageOptions: OcrLanguageOption[] = [
   {
     id: 'chinese',
-    label: '中文',
-    description: 'PP-OCRv5 通用中日英辨識模型',
+    label: strings.ocr.languages.chinese.label,
+    description: strings.ocr.languages.chinese.description,
   },
   {
     id: 'english',
-    label: 'English',
-    description: 'PP-OCRv5 英文辨識模型',
+    label: strings.ocr.languages.english.label,
+    description: strings.ocr.languages.english.description,
   },
 ]
 
@@ -88,7 +89,7 @@ async function fileToCanvas(file: File): Promise<HTMLCanvasElement> {
     const context = canvas.getContext('2d', { willReadFrequently: true })
 
     if (!context) {
-      throw new Error('瀏覽器無法建立 Canvas 2D 環境。')
+      throw new Error(strings.ocr.errors.canvasContext)
     }
 
     context.drawImage(image, 0, 0)

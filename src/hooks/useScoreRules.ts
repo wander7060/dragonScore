@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react'
 import defaultScoreRulesData from '../data/defaultScoreRules.json'
+import { strings } from '../i18n/strings'
 import type { MatchMode, PublicScoreRule, ScoreRule } from '../types/scoring'
 
 const SCORE_RULES_STORAGE_KEY = 'dragonscore.ocrScoring.rules.v1'
@@ -35,22 +36,20 @@ function isPublicScoreRule(value: unknown): value is PublicScoreRule {
 
 function validatePublicRules(value: unknown): PublicScoreRule[] {
   if (!Array.isArray(value)) {
-    throw new Error('JSON 必須是規則陣列。')
+    throw new Error(strings.scoreRules.jsonMustBeArray)
   }
 
   const seenTexts = new Set<string>()
 
   return value.map((item, index) => {
     if (!isPublicScoreRule(item)) {
-      throw new Error(
-        `第 ${index + 1} 筆規則必須包含非空文字、有限數字分數與合法比對模式。`,
-      )
+      throw new Error(strings.scoreRules.invalidRule(index))
     }
 
     const normalizedText = item.text.trim()
 
     if (seenTexts.has(normalizedText)) {
-      throw new Error(`關鍵字「${normalizedText}」重複。`)
+      throw new Error(strings.scoreRules.duplicatedKeyword(normalizedText))
     }
 
     seenTexts.add(normalizedText)
@@ -96,7 +95,7 @@ function readStoredRules(): { rules: ScoreRule[]; warning: string } {
   } catch {
     return {
       rules: createDefaultScoreRules(),
-      warning: '已忽略毀損的評分規則儲存資料，並套用預設規則。',
+      warning: strings.scoreRules.corruptedStorageWarning,
     }
   }
 }
@@ -106,7 +105,7 @@ export function parseScoreRulesJson(jsonText: string): ScoreRule[] {
     return toStoredRules(validatePublicRules(JSON.parse(jsonText)))
   } catch (error) {
     if (error instanceof SyntaxError) {
-      throw new Error('JSON 格式無效。', { cause: error })
+      throw new Error(strings.scoreRules.invalidJson, { cause: error })
     }
 
     throw error
@@ -137,7 +136,7 @@ export function useScoreRules() {
     } catch {
       setState({
         rules: nextRules,
-        warning: '無法寫入 localStorage，規則可能不會在重新整理後保留。',
+        warning: strings.scoreRules.storageWriteWarning,
       })
     }
   }, [])

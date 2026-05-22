@@ -69,6 +69,10 @@ export interface FuzzySentenceOptions {
   maxDistanceRatio: number
 }
 
+export interface LineGroupingOptions {
+  centerThresholdRatio: number
+}
+
 export interface MatchCandidate {
   lineId: string
   lineText: string

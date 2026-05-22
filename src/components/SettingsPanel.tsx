@@ -12,6 +12,7 @@ import {
   createDefaultScoreRules,
   parseScoreRulesJson,
 } from '../hooks/useScoreRules'
+import { strings } from '../i18n/strings'
 import { DEFAULT_FUZZY_SENTENCE_OPTIONS } from '../lib/scoring'
 import type { MatchMode, ScoreRule } from '../types/scoring'
 
@@ -121,11 +122,11 @@ function validateRuleInput(
   const score = scoreText.trim() ? Number(scoreText) : 0
 
   if (!normalizedText) {
-    return { error: '請輸入關鍵字。' }
+    return { error: strings.settings.validation.keywordRequired }
   }
 
   if (!Number.isFinite(score)) {
-    return { error: '分數必須是有限數字。' }
+    return { error: strings.settings.validation.scoreFinite }
   }
 
   const duplicatedRule = rules.find(
@@ -133,7 +134,7 @@ function validateRuleInput(
   )
 
   if (duplicatedRule) {
-    return { error: `關鍵字「${normalizedText}」已存在。` }
+    return { error: strings.settings.validation.duplicatedKeyword(normalizedText) }
   }
 
   return { rule: { text: normalizedText, score, matchMode } }
@@ -337,7 +338,7 @@ export function SettingsPanel({
         item.id === rule.id ? { ...item, ...validation.rule } : item,
       ),
     )
-    setMessage('規則已更新。')
+    setMessage(strings.settings.messages.ruleUpdated)
   }
 
   const submitNewRule = () => {
@@ -367,7 +368,7 @@ export function SettingsPanel({
     setNewText('')
     setNewScoreText('')
     setNewMatchMode('exact')
-    setMessage('規則已新增。')
+    setMessage(strings.settings.messages.ruleAdded)
   }
 
   const handleRuleKeyDown = (
@@ -409,7 +410,7 @@ export function SettingsPanel({
       nextSelectedRuleIds.delete(ruleId)
       return nextSelectedRuleIds
     })
-    setMessage('規則已刪除。')
+    setMessage(strings.settings.messages.ruleDeleted)
   }
 
   const toggleRuleSelection = (ruleId: string) => {
@@ -627,8 +628,8 @@ export function SettingsPanel({
       onRulesChange(nextRules)
       setMessage(
         activeRuleDrag.ids.length > 1
-          ? `已移動 ${activeRuleDrag.ids.length} 筆規則。`
-          : '規則順序已更新。',
+          ? strings.settings.messages.rulesMoved(activeRuleDrag.ids.length)
+          : strings.settings.messages.ruleOrderUpdated,
       )
     }
 
@@ -772,25 +773,29 @@ export function SettingsPanel({
       const nextRules = parseScoreRulesJson(importText)
       onRulesChange(nextRules)
       setImportText('')
-      setMessage(`已匯入 ${nextRules.length} 筆規則。`)
+      setMessage(strings.settings.messages.rulesImported(nextRules.length))
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : '匯入 JSON 失敗。')
+      setMessage(
+        error instanceof Error
+          ? error.message
+          : strings.settings.messages.importFailed,
+      )
     }
   }
 
   const copyExport = async () => {
     try {
       await navigator.clipboard.writeText(exportText)
-      setMessage('匯出 JSON 已複製。')
+      setMessage(strings.settings.messages.exportCopied)
     } catch {
-      setMessage('無法寫入剪貼簿，請直接選取匯出內容。')
+      setMessage(strings.settings.messages.exportCopyFailed)
     }
   }
 
   const clearRules = () => {
     if (
       typeof window !== 'undefined' &&
-      !window.confirm('確定要清除所有評分規則？此動作會立即覆蓋目前規則。')
+      !window.confirm(strings.settings.confirms.clearRules)
     ) {
       return
     }
@@ -799,13 +804,13 @@ export function SettingsPanel({
     setDrafts({})
     setSelectedRuleIds(new Set())
     onRulesChange([])
-    setMessage('評分規則已清除。')
+    setMessage(strings.settings.messages.rulesCleared)
   }
 
   const restoreDefaultRules = () => {
     if (
       typeof window !== 'undefined' &&
-      !window.confirm('確定要還原為預設評分規則？目前規則將會被取代。')
+      !window.confirm(strings.settings.confirms.restoreDefaults)
     ) {
       return
     }
@@ -814,35 +819,35 @@ export function SettingsPanel({
     setDrafts({})
     setSelectedRuleIds(new Set())
     onRulesChange(createDefaultScoreRules())
-    setMessage('已還原為預設評分規則。')
+    setMessage(strings.settings.messages.defaultsRestored)
   }
 
   return (
     <div className="settings-grid">
       <section className="panel settings-form-panel" aria-labelledby="rule-form-title">
         <div className="panel-header">
-          <h2 id="rule-form-title">評分規則</h2>
+          <h2 id="rule-form-title">{strings.settings.panelTitle}</h2>
           <div className="rule-header-actions">
             <button
               type="button"
               className="copy-button"
               onClick={() => setIsJsonDialogOpen(true)}
             >
-              JSON
+              {strings.common.json}
             </button>
             <button
               type="button"
               className="copy-button"
               onClick={restoreDefaultRules}
             >
-              還原預設
+              {strings.settings.restoreDefaults}
             </button>
             <button
               type="button"
               className="copy-button danger-text-button"
               onClick={clearRules}
             >
-              清除
+              {strings.settings.clear}
             </button>
           </div>
         </div>
@@ -855,7 +860,7 @@ export function SettingsPanel({
 
           <ul
             className={`rule-list ${isSelectionDragging ? 'is-selecting' : ''}`}
-            aria-label="Scoring rules"
+            aria-label={strings.settings.rulesAria}
           >
             {rules.length > 0 ? (
               renderedRules.map((rule) => {
@@ -898,7 +903,7 @@ export function SettingsPanel({
                         onKeyDown={(event) =>
                           handleRuleSelectionKeyDown(event, rule.id)
                         }
-                        aria-label={`選取規則 ${rule.text}`}
+                        aria-label={strings.settings.aria.selectRule(rule.text)}
                       />
                     </label>
                     <span
@@ -909,8 +914,8 @@ export function SettingsPanel({
                       onPointerUp={commitRuleDrag}
                       title={
                         isSelected && selectedRuleIds.size > 1
-                          ? `拖曳 ${selectedRuleIds.size} 筆規則`
-                          : '拖曳規則'
+                          ? strings.settings.drag.selectedRules(selectedRuleIds.size)
+                          : strings.settings.drag.singleRule
                       }
                       aria-hidden="true"
                     >
@@ -929,7 +934,7 @@ export function SettingsPanel({
                         updateRuleDraft(rule.id, 'text', event.target.value)
                       }
                       onKeyDown={(event) => handleRuleKeyDown(event, rule)}
-                      aria-label="規則關鍵字"
+                      aria-label={strings.settings.aria.ruleKeyword}
                     />
                     <input
                       className="rule-editor-input rule-score-input"
@@ -940,7 +945,7 @@ export function SettingsPanel({
                         updateRuleDraft(rule.id, 'scoreText', event.target.value)
                       }
                       onKeyDown={(event) => handleRuleKeyDown(event, rule)}
-                      aria-label="規則分數"
+                      aria-label={strings.settings.aria.ruleScore}
                     />
                     <select
                       className="rule-editor-input rule-mode-select"
@@ -953,18 +958,22 @@ export function SettingsPanel({
                           event.target.value as MatchMode,
                         )
                       }
-                      aria-label="規則比對模式"
+                      aria-label={strings.settings.aria.ruleMatchMode}
                     >
-                      <option value="exact">精準比對</option>
-                      <option value="fuzzySentence">整句模糊比對</option>
+                      <option value="exact">
+                        {strings.settings.matchModeLabels.exact}
+                      </option>
+                      <option value="fuzzySentence">
+                        {strings.settings.matchModeLabels.fuzzySentence}
+                      </option>
                     </select>
                     <div className="rule-actions">
                       <button
                         type="button"
                         className="icon-button danger"
                         onClick={() => deleteRule(rule.id)}
-                        aria-label="刪除規則"
-                        title="刪除規則"
+                        aria-label={strings.settings.aria.deleteRule}
+                        title={strings.settings.aria.deleteRule}
                       >
                         <Icon name="trash" />
                       </button>
@@ -973,14 +982,14 @@ export function SettingsPanel({
                       draft.text.trim().length <
                         DEFAULT_FUZZY_SENTENCE_OPTIONS.minKeywordLength && (
                         <p className="rule-mode-warning">
-                          關鍵字較短，模糊比對可能不會生效
+                          {strings.settings.fuzzyKeywordTooShort}
                         </p>
                       )}
                   </li>
                 )
               })
             ) : (
-              <li className="rule-empty">尚未建立評分規則。</li>
+              <li className="rule-empty">{strings.settings.emptyRules}</li>
             )}
             <li className="rule-item rule-new-row">
               <span className="rule-select-placeholder" aria-hidden="true" />
@@ -992,8 +1001,8 @@ export function SettingsPanel({
                 value={newText}
                 onChange={(event) => setNewText(event.target.value)}
                 onKeyDown={handleNewRuleKeyDown}
-                placeholder="新增關鍵字"
-                aria-label="新增規則關鍵字"
+                placeholder={strings.settings.newKeywordPlaceholder}
+                aria-label={strings.settings.aria.newRuleKeyword}
               />
               <input
                 className="rule-editor-input rule-score-input"
@@ -1001,8 +1010,8 @@ export function SettingsPanel({
                 inputMode="decimal"
                 onChange={(event) => setNewScoreText(event.target.value)}
                 onKeyDown={handleNewRuleKeyDown}
-                placeholder="0"
-                aria-label="新增規則分數"
+                placeholder={strings.settings.scorePlaceholder}
+                aria-label={strings.settings.aria.newRuleScore}
               />
               <select
                 className="rule-editor-input rule-mode-select"
@@ -1010,18 +1019,22 @@ export function SettingsPanel({
                 onChange={(event) =>
                   setNewMatchMode(event.target.value as MatchMode)
                 }
-                aria-label="新增規則比對模式"
+                aria-label={strings.settings.aria.newRuleMatchMode}
               >
-                <option value="exact">精準比對</option>
-                <option value="fuzzySentence">整句模糊比對</option>
+                <option value="exact">
+                  {strings.settings.matchModeLabels.exact}
+                </option>
+                <option value="fuzzySentence">
+                  {strings.settings.matchModeLabels.fuzzySentence}
+                </option>
               </select>
               <div className="rule-actions">
                 <button
                   type="button"
                   className="icon-button"
                   onClick={submitNewRule}
-                  aria-label="新增規則"
-                  title="新增規則"
+                  aria-label={strings.settings.aria.addRule}
+                  title={strings.settings.aria.addRule}
                 >
                   +
                 </button>
@@ -1030,7 +1043,7 @@ export function SettingsPanel({
                 newText.trim().length <
                   DEFAULT_FUZZY_SENTENCE_OPTIONS.minKeywordLength && (
                   <p className="rule-mode-warning">
-                    關鍵字較短，模糊比對可能不會生效
+                    {strings.settings.fuzzyKeywordTooShort}
                   </p>
                 )}
             </li>
@@ -1056,9 +1069,7 @@ export function SettingsPanel({
                       {draft.scoreText}
                     </span>
                     <span className="rule-drag-overlay-mode">
-                      {draft.matchMode === 'fuzzySentence'
-                        ? '整句模糊'
-                        : '精準'}
+                      {strings.settings.matchModeCompactLabels[draft.matchMode]}
                     </span>
                   </div>
                 )
@@ -1084,17 +1095,17 @@ export function SettingsPanel({
             role="dialog"
           >
             <div className="panel-header">
-              <h2 id="rule-json-title">JSON 匯入 / 匯出</h2>
+              <h2 id="rule-json-title">{strings.settings.jsonTitle}</h2>
               <div className="dialog-actions">
                 <button type="button" className="copy-button" onClick={copyExport}>
-                  複製匯出
+                  {strings.settings.copyExport}
                 </button>
                 <button
                   type="button"
                   className="icon-button"
                   onClick={() => setIsJsonDialogOpen(false)}
-                  aria-label="關閉 JSON 視窗"
-                  title="關閉"
+                  aria-label={strings.settings.closeJsonDialog}
+                  title={strings.common.close}
                 >
                   ×
                 </button>
@@ -1102,11 +1113,11 @@ export function SettingsPanel({
             </div>
             <div className="panel-body settings-body">
               <label className="json-field">
-                <span>匯入 JSON</span>
+                <span>{strings.settings.importJsonLabel}</span>
                 <textarea
                   value={importText}
                   onChange={(event) => setImportText(event.target.value)}
-                  placeholder='[{"text":"發票","score":10,"matchMode":"exact"}]'
+                  placeholder={strings.settings.importPlaceholder}
                 />
               </label>
               <button
@@ -1115,10 +1126,10 @@ export function SettingsPanel({
                 onClick={importRules}
                 disabled={importText.trim().length === 0}
               >
-                驗證並替換規則
+                {strings.settings.validateAndReplace}
               </button>
               <label className="json-field">
-                <span>匯出 JSON</span>
+                <span>{strings.settings.exportJsonLabel}</span>
                 <textarea value={exportText} readOnly />
               </label>
             </div>

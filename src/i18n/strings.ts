@@ -1,0 +1,187 @@
+import type { MatchMode } from '../types/scoring'
+
+export const strings = {
+  app: {
+    workspaceLabel: 'OCR demo workspace',
+    title: 'DragonScore',
+    tabsLabel: '主要視圖',
+    tabs: {
+      ocr: 'OCR',
+      settings: '設定',
+    },
+    poweredBy: 'Powered by ppu-paddle-ocr/web',
+  },
+  common: {
+    json: 'JSON',
+    close: '關閉',
+  },
+  ocr: {
+    statusLabels: {
+      idle: '待命',
+      loading_model: '模型初始化',
+      recognizing: '影像分析',
+      success: '完成',
+      error: '錯誤',
+    },
+    imageSourceTitle: '圖片來源',
+    clearImage: '清除圖片',
+    uploadTitle: '選擇圖片',
+    uploadMeta: '拖放圖片或貼上剪貼簿影像',
+    previewAlt: 'OCR preview',
+    fileName: '檔名',
+    dimensions: '尺寸',
+    fileSize: '大小',
+    recognitionSettingsTitle: '辨識設定',
+    resultTitle: '辨識結果',
+    copyCopied: '已複製',
+    copyAll: '複製全部',
+    languageLabel: '辨識語言',
+    lineMergeLabel: '句子合併距離',
+    lineMergeHint: (distance: string) =>
+      `上下中心差距在 ${distance} 字高內合併成一句。`,
+    runLoadingModel: '初始化 AI 模型中...',
+    runRecognizing: '影像特徵分析中...',
+    runIdle: '開始文字辨識',
+    loadingWeights: 'Loading OCR Weights...',
+    processingImage: 'Processing Image...',
+    waitingRecognition: '等待辨識',
+    resultsAria: 'OCR results',
+    itemScoreAria: (score: number) => `項目分數 ${score}`,
+    errors: {
+      invalidImage: '請上傳有效的圖片檔案。',
+      chooseImageFirst: '請先選擇圖片。',
+      noTextDetected: 'PaddleOCR 沒有從這張圖片辨識出文字。',
+      unknownRecognition: '辨識過程中發生未知錯誤。',
+      recognitionFailed: (message: string) => `PaddleOCR 辨識失敗：${message}`,
+      clipboardWrite: '無法寫入剪貼簿。',
+      canvasContext: '瀏覽器無法建立 Canvas 2D 環境。',
+    },
+    languages: {
+      chinese: {
+        label: '中文',
+        description: 'PP-OCRv5 通用中日英辨識模型',
+      },
+      english: {
+        label: 'English',
+        description: 'PP-OCRv5 英文辨識模型',
+      },
+    },
+  },
+  settings: {
+    panelTitle: '評分規則',
+    restoreDefaults: '還原預設',
+    clear: '清除',
+    rulesAria: 'Scoring rules',
+    emptyRules: '尚未建立評分規則。',
+    newKeywordPlaceholder: '新增關鍵字',
+    scorePlaceholder: '0',
+    jsonTitle: 'JSON 匯入 / 匯出',
+    copyExport: '複製匯出',
+    importJsonLabel: '匯入 JSON',
+    exportJsonLabel: '匯出 JSON',
+    importPlaceholder: '[{"text":"發票","score":10,"matchMode":"exact"}]',
+    validateAndReplace: '驗證並替換規則',
+    closeJsonDialog: '關閉 JSON 視窗',
+    validation: {
+      keywordRequired: '請輸入關鍵字。',
+      scoreFinite: '分數必須是有限數字。',
+      duplicatedKeyword: (keyword: string) => `關鍵字「${keyword}」已存在。`,
+    },
+    messages: {
+      ruleUpdated: '規則已更新。',
+      ruleAdded: '規則已新增。',
+      ruleDeleted: '規則已刪除。',
+      rulesMoved: (count: number) => `已移動 ${count} 筆規則。`,
+      ruleOrderUpdated: '規則順序已更新。',
+      rulesImported: (count: number) => `已匯入 ${count} 筆規則。`,
+      importFailed: '匯入 JSON 失敗。',
+      exportCopied: '匯出 JSON 已複製。',
+      exportCopyFailed: '無法寫入剪貼簿，請直接選取匯出內容。',
+      rulesCleared: '評分規則已清除。',
+      defaultsRestored: '已還原為預設評分規則。',
+    },
+    confirms: {
+      clearRules: '確定要清除所有評分規則？此動作會立即覆蓋目前規則。',
+      restoreDefaults: '確定要還原為預設評分規則？目前規則將會被取代。',
+    },
+    aria: {
+      selectRule: (keyword: string) => `選取規則 ${keyword}`,
+      ruleKeyword: '規則關鍵字',
+      ruleScore: '規則分數',
+      ruleMatchMode: '規則比對模式',
+      deleteRule: '刪除規則',
+      newRuleKeyword: '新增規則關鍵字',
+      newRuleScore: '新增規則分數',
+      newRuleMatchMode: '新增規則比對模式',
+      addRule: '新增規則',
+    },
+    drag: {
+      selectedRules: (count: number) => `拖曳 ${count} 筆規則`,
+      singleRule: '拖曳規則',
+    },
+    matchModeLabels: {
+      exact: '精準比對',
+      fuzzySentence: '整句模糊比對',
+    } satisfies Record<MatchMode, string>,
+    matchModeCompactLabels: {
+      exact: '精準',
+      fuzzySentence: '整句模糊',
+    } satisfies Record<MatchMode, string>,
+    fuzzyKeywordTooShort: '關鍵字較短，模糊比對可能不會生效',
+  },
+  score: {
+    summaryAria: 'OCR score summary',
+    summaryTitle: '評分摘要',
+    totalScore: '總分',
+    commentLabel: '評語',
+    countedKeywordsAria: '已計分關鍵字',
+    lineMatchesAria: '行級評分匹配',
+    noOcrResults: '尚無 OCR 結果。',
+    noRules: '已有 OCR 結果，尚未設定評分規則。',
+    noMatches: '目前規則沒有匹配任何辨識文字。',
+    duplicateOrAmbiguous: (ambiguityComment: string) =>
+      `僅找到重複匹配或未決議歧義，總分未增加。${ambiguityComment}`,
+    countedSummary: (
+      countedMatches: number,
+      totalScore: number,
+      rangeComment: string,
+      ambiguityComment: string,
+    ) =>
+      `已計入 ${countedMatches} 個項目，總分為 ${totalScore}。${rangeComment}${ambiguityComment}`,
+    rangeComments: {
+      zeroToTen: '分數落在 0 至 10 分，符合度偏低，建議補強關鍵項目。',
+      tenToTwenty: '分數落在 10 至 20 分，符合度中等，可再確認細節。',
+    },
+    unresolvedAmbiguitySuffix: (count: number) =>
+      ` 尚有 ${count} 筆未作決議的歧義。`,
+    status: {
+      pending: '待選擇',
+      selectedCounted: '已選擇並計分',
+      selectedNotCounted: '已選擇，未計分',
+      counted: '已計分',
+      notCounted: '未計分',
+      ambiguityResolved: '已決議歧義',
+    },
+    matchTypes: {
+      exact: '精準',
+      fuzzy: '模糊',
+    },
+    similarityDistance: (similarity: string, rawDistance: number) =>
+      `相似度 ${similarity} / 距離 ${rawDistance}`,
+    ambiguousPrompt: '疑似匹配，請選擇要套用的關鍵字',
+    noApply: '不套用',
+    ambiguousOption: (keyword: string, score: number, similarity: string, rawDistance: number) =>
+      `${keyword} / ${score} / 相似度 ${similarity} / 距離 ${rawDistance}`,
+  },
+  scoreRules: {
+    jsonMustBeArray: 'JSON 必須是規則陣列。',
+    invalidRule: (index: number) =>
+      `第 ${index + 1} 筆規則必須包含非空文字、有限數字分數與合法比對模式。`,
+    duplicatedKeyword: (keyword: string) => `關鍵字「${keyword}」重複。`,
+    corruptedStorageWarning:
+      '已忽略毀損的評分規則儲存資料，並套用預設規則。',
+    invalidJson: 'JSON 格式無效。',
+    storageWriteWarning:
+      '無法寫入 localStorage，規則可能不會在重新整理後保留。',
+  },
+} as const
