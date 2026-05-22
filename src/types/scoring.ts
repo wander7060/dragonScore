@@ -11,10 +11,14 @@ export interface OcrResult {
   box: OcrBox
 }
 
+export type MatchMode = 'exact' | 'fuzzySentence'
+export type MatchType = 'exact' | 'fuzzy'
+
 export interface ScoreRule {
   id: string
   text: string
   score: number
+  matchMode: MatchMode
 }
 
 export interface RecognizedLine {
@@ -31,6 +35,12 @@ export interface LineMatch {
   keyword: string
   score: number
   counted: boolean
+  matchType: MatchType
+  rawDistance?: number
+  similarity?: number
+  ambiguous?: boolean
+  ambiguousOptions?: AmbiguousMatchOption[]
+  resolvedByUser?: boolean
 }
 
 export interface ScoredOcrItem {
@@ -48,4 +58,38 @@ export interface ScoreSummary {
 export interface PublicScoreRule {
   text: string
   score: number
+  matchMode: MatchMode
+}
+
+export interface FuzzySentenceOptions {
+  minKeywordLength: number
+  minSimilarity: number
+  minScoreGap: number
+  maxRawDistance: number
+  maxDistanceRatio: number
+}
+
+export interface MatchCandidate {
+  lineId: string
+  lineText: string
+  ruleId: string
+  keyword: string
+  score: number
+  matchType: MatchType
+  rawDistance: number
+  similarity: number
+  ambiguous: boolean
+}
+
+export interface AmbiguousMatchOption {
+  ruleId: string
+  keyword: string
+  score: number
+  rawDistance: number
+  similarity: number
+}
+
+export interface AmbiguousMatchResolution {
+  lineId: string
+  selectedRuleId: string
 }

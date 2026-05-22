@@ -25,8 +25,7 @@ function App() {
               <Icon name="scan" />
             </span>
             <span>
-              <span className="app-title">AI Vision OCR</span>
-              <span className="app-subtitle">Powered by ppu-paddle-ocr/web</span>
+              <span className="app-title">DragonScore</span>
             </span>
           </div>
           <OcrStatusPill status={ocrStatus} />
@@ -73,6 +72,8 @@ function App() {
           />
         </div>
       </section>
+
+      <footer className="app-subtitle">Powered by ppu-paddle-ocr/web</footer>
     </main>
   )
 }

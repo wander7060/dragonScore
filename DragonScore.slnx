@@ -1,5 +1,5 @@
 <Solution>
-  <Project Path="reactproject2.esproj">
+  <Project Path="DragonScore.esproj">
     <Build />
     <Deploy />
   </Project>

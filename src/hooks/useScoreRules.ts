@@ -1,8 +1,9 @@
 import { useCallback, useState } from 'react'
 import defaultScoreRulesData from '../data/defaultScoreRules.json'
-import type { PublicScoreRule, ScoreRule } from '../types/scoring'
+import type { MatchMode, PublicScoreRule, ScoreRule } from '../types/scoring'
 
-const SCORE_RULES_STORAGE_KEY = 'reactproject2.ocrScoring.rules.v1'
+const SCORE_RULES_STORAGE_KEY = 'dragonscore.ocrScoring.rules.v1'
+const LEGACY_SCORE_RULES_STORAGE_KEY = 'reactproject2.ocrScoring.rules.v1'
 
 function createRuleId() {
   if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
@@ -10,6 +11,10 @@ function createRuleId() {
   }
 
   return `rule-${Date.now()}-${Math.random().toString(36).slice(2)}`
+}
+
+function isMatchMode(value: unknown): value is MatchMode {
+  return value === 'exact' || value === 'fuzzySentence'
 }
 
 function isPublicScoreRule(value: unknown): value is PublicScoreRule {
@@ -23,7 +28,8 @@ function isPublicScoreRule(value: unknown): value is PublicScoreRule {
     typeof candidate.text === 'string' &&
     candidate.text.trim().length > 0 &&
     typeof candidate.score === 'number' &&
-    Number.isFinite(candidate.score)
+    Number.isFinite(candidate.score) &&
+    isMatchMode(candidate.matchMode)
   )
 }
 
@@ -36,7 +42,9 @@ function validatePublicRules(value: unknown): PublicScoreRule[] {
 
   return value.map((item, index) => {
     if (!isPublicScoreRule(item)) {
-      throw new Error(`第 ${index + 1} 筆規則必須包含非空文字與有限數字分數。`)
+      throw new Error(
+        `第 ${index + 1} 筆規則必須包含非空文字、有限數字分數與合法比對模式。`,
+      )
     }
 
     const normalizedText = item.text.trim()
@@ -49,6 +57,7 @@ function validatePublicRules(value: unknown): PublicScoreRule[] {
     return {
       text: normalizedText,
       score: item.score,
+      matchMode: item.matchMode,
     }
   })
 }
@@ -58,6 +67,7 @@ function toStoredRules(publicRules: PublicScoreRule[]): ScoreRule[] {
     id: createRuleId(),
     text: rule.text,
     score: rule.score,
+    matchMode: rule.matchMode,
   }))
 }
 
@@ -71,7 +81,9 @@ function readStoredRules(): { rules: ScoreRule[]; warning: string } {
   }
 
   try {
-    const storedValue = window.localStorage.getItem(SCORE_RULES_STORAGE_KEY)
+    const storedValue =
+      window.localStorage.getItem(SCORE_RULES_STORAGE_KEY) ??
+      window.localStorage.getItem(LEGACY_SCORE_RULES_STORAGE_KEY)
 
     if (!storedValue) {
       return { rules: createDefaultScoreRules(), warning: '' }
@@ -111,11 +123,16 @@ export function useScoreRules() {
     }
 
     try {
-      const publicRules = nextRules.map(({ text, score }) => ({ text, score }))
+      const publicRules = nextRules.map(({ text, score, matchMode }) => ({
+        text,
+        score,
+        matchMode,
+      }))
       window.localStorage.setItem(
         SCORE_RULES_STORAGE_KEY,
         JSON.stringify(publicRules),
       )
+      window.localStorage.removeItem(LEGACY_SCORE_RULES_STORAGE_KEY)
       setState({ rules: nextRules, warning: '' })
     } catch {
       setState({

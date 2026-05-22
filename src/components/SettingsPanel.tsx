@@ -12,7 +12,8 @@ import {
   createDefaultScoreRules,
   parseScoreRulesJson,
 } from '../hooks/useScoreRules'
-import type { ScoreRule } from '../types/scoring'
+import { DEFAULT_FUZZY_SENTENCE_OPTIONS } from '../lib/scoring'
+import type { MatchMode, ScoreRule } from '../types/scoring'
 
 interface SettingsPanelProps {
   rules: ScoreRule[]
@@ -23,6 +24,7 @@ interface SettingsPanelProps {
 interface RuleDraft {
   text: string
   scoreText: string
+  matchMode: MatchMode
 }
 
 function createRuleId() {
@@ -35,7 +37,7 @@ function createRuleId() {
 
 type RuleInputValidation =
   | { error: string; rule?: never }
-  | { error?: never; rule: { text: string; score: number } }
+  | { error?: never; rule: { text: string; score: number; matchMode: MatchMode } }
 
 type DropPlacement = 'before' | 'after'
 type SelectionDragMode = 'select' | 'deselect'
@@ -111,6 +113,7 @@ function getRuleLayoutRect(element: HTMLElement): RuleLayoutRect {
 function validateRuleInput(
   text: string,
   scoreText: string,
+  matchMode: MatchMode,
   rules: ScoreRule[],
   editingId?: string,
 ): RuleInputValidation {
@@ -133,7 +136,7 @@ function validateRuleInput(
     return { error: `關鍵字「${normalizedText}」已存在。` }
   }
 
-  return { rule: { text: normalizedText, score } }
+  return { rule: { text: normalizedText, score, matchMode } }
 }
 
 export function SettingsPanel({
@@ -144,6 +147,7 @@ export function SettingsPanel({
   const [drafts, setDrafts] = useState<Record<string, RuleDraft>>({})
   const [newText, setNewText] = useState('')
   const [newScoreText, setNewScoreText] = useState('')
+  const [newMatchMode, setNewMatchMode] = useState<MatchMode>('exact')
   const [importText, setImportText] = useState('')
   const [message, setMessage] = useState('')
   const [selectedRuleIds, setSelectedRuleIds] = useState<Set<string>>(
@@ -178,7 +182,11 @@ export function SettingsPanel({
   const exportText = useMemo(
     () =>
       JSON.stringify(
-        rules.map(({ text: ruleText, score }) => ({ text: ruleText, score })),
+        rules.map(({ text: ruleText, score, matchMode }) => ({
+          text: ruleText,
+          score,
+          matchMode,
+        })),
         null,
         2,
       ),
@@ -259,6 +267,7 @@ export function SettingsPanel({
     drafts[rule.id] ?? {
       text: rule.text,
       scoreText: String(rule.score),
+      matchMode: rule.matchMode,
     }
 
   const updateRuleDraft = (
@@ -271,8 +280,12 @@ export function SettingsPanel({
       const currentDraft =
         currentDrafts[ruleId] ??
         (rule
-          ? { text: rule.text, scoreText: String(rule.score) }
-          : { text: '', scoreText: '' })
+          ? {
+              text: rule.text,
+              scoreText: String(rule.score),
+              matchMode: rule.matchMode,
+            }
+          : { text: '', scoreText: '', matchMode: 'exact' })
 
       return {
         ...currentDrafts,
@@ -290,6 +303,7 @@ export function SettingsPanel({
       [rule.id]: {
         text: rule.text,
         scoreText: String(rule.score),
+        matchMode: rule.matchMode,
       },
     }))
   }
@@ -299,6 +313,7 @@ export function SettingsPanel({
     const validation = validateRuleInput(
       draft.text,
       draft.scoreText,
+      draft.matchMode,
       rules,
       rule.id,
     )
@@ -309,7 +324,11 @@ export function SettingsPanel({
       return
     }
 
-    if (rule.text === validation.rule.text && rule.score === validation.rule.score) {
+    if (
+      rule.text === validation.rule.text &&
+      rule.score === validation.rule.score &&
+      rule.matchMode === validation.rule.matchMode
+    ) {
       return
     }
 
@@ -326,7 +345,12 @@ export function SettingsPanel({
       return
     }
 
-    const validation = validateRuleInput(newText, newScoreText, rules)
+    const validation = validateRuleInput(
+      newText,
+      newScoreText,
+      newMatchMode,
+      rules,
+    )
 
     if (validation.error !== undefined) {
       setMessage(validation.error)
@@ -342,6 +366,7 @@ export function SettingsPanel({
     ])
     setNewText('')
     setNewScoreText('')
+    setNewMatchMode('exact')
     setMessage('規則已新增。')
   }
 
@@ -917,6 +942,22 @@ export function SettingsPanel({
                       onKeyDown={(event) => handleRuleKeyDown(event, rule)}
                       aria-label="規則分數"
                     />
+                    <select
+                      className="rule-editor-input rule-mode-select"
+                      value={draft.matchMode}
+                      onBlur={() => commitRule(rule)}
+                      onChange={(event) =>
+                        updateRuleDraft(
+                          rule.id,
+                          'matchMode',
+                          event.target.value as MatchMode,
+                        )
+                      }
+                      aria-label="規則比對模式"
+                    >
+                      <option value="exact">精準比對</option>
+                      <option value="fuzzySentence">整句模糊比對</option>
+                    </select>
                     <div className="rule-actions">
                       <button
                         type="button"
@@ -928,6 +969,13 @@ export function SettingsPanel({
                         <Icon name="trash" />
                       </button>
                     </div>
+                    {draft.matchMode === 'fuzzySentence' &&
+                      draft.text.trim().length <
+                        DEFAULT_FUZZY_SENTENCE_OPTIONS.minKeywordLength && (
+                        <p className="rule-mode-warning">
+                          關鍵字較短，模糊比對可能不會生效
+                        </p>
+                      )}
                   </li>
                 )
               })
@@ -956,6 +1004,17 @@ export function SettingsPanel({
                 placeholder="0"
                 aria-label="新增規則分數"
               />
+              <select
+                className="rule-editor-input rule-mode-select"
+                value={newMatchMode}
+                onChange={(event) =>
+                  setNewMatchMode(event.target.value as MatchMode)
+                }
+                aria-label="新增規則比對模式"
+              >
+                <option value="exact">精準比對</option>
+                <option value="fuzzySentence">整句模糊比對</option>
+              </select>
               <div className="rule-actions">
                 <button
                   type="button"
@@ -967,6 +1026,13 @@ export function SettingsPanel({
                   +
                 </button>
               </div>
+              {newMatchMode === 'fuzzySentence' &&
+                newText.trim().length <
+                  DEFAULT_FUZZY_SENTENCE_OPTIONS.minKeywordLength && (
+                  <p className="rule-mode-warning">
+                    關鍵字較短，模糊比對可能不會生效
+                  </p>
+                )}
             </li>
           </ul>
 
@@ -988,6 +1054,11 @@ export function SettingsPanel({
                     <span className="rule-drag-overlay-text">{draft.text}</span>
                     <span className="rule-drag-overlay-score">
                       {draft.scoreText}
+                    </span>
+                    <span className="rule-drag-overlay-mode">
+                      {draft.matchMode === 'fuzzySentence'
+                        ? '整句模糊'
+                        : '精準'}
                     </span>
                   </div>
                 )
@@ -1035,7 +1106,7 @@ export function SettingsPanel({
                 <textarea
                   value={importText}
                   onChange={(event) => setImportText(event.target.value)}
-                  placeholder='[{"text":"發票","score":10}]'
+                  placeholder='[{"text":"發票","score":10,"matchMode":"exact"}]'
                 />
               </label>
               <button

@@ -3,7 +3,11 @@ import type { PaddleOcrService } from 'ppu-paddle-ocr/web'
 import { Icon } from '../../components/Icon'
 import { ScoreSummaryPanel } from '../../components/ScoreSummaryPanel'
 import { calculateScore } from '../../lib/scoring'
-import type { OcrResult, ScoreRule } from '../../types/scoring'
+import type {
+  AmbiguousMatchResolution,
+  OcrResult,
+  ScoreRule,
+} from '../../types/scoring'
 import {
   createPaddleService,
   ocrLanguageOptions,
@@ -64,9 +68,15 @@ export function OcrPanel({ isActive, rules, onStatusChange }: OcrPanelProps) {
   const [errorMsg, setErrorMsg] = useState('')
   const [copyState, setCopyState] = useState<'idle' | 'copied'>('idle')
   const [language, setLanguage] = useState<OcrLanguage>('chinese')
+  const [ambiguousResolutions, setAmbiguousResolutions] = useState<
+    AmbiguousMatchResolution[]
+  >([])
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const serviceRef = useRef<CachedOcrService | null>(null)
-  const scoreSummary = useMemo(() => calculateScore(results, rules), [results, rules])
+  const scoreSummary = useMemo(
+    () => calculateScore(results, rules, ambiguousResolutions),
+    [ambiguousResolutions, results, rules],
+  )
   const scoreByResult = useMemo(
     () =>
       new Map(scoreSummary.itemScores.map(({ item, score }) => [item, score])),
@@ -104,6 +114,7 @@ export function OcrPanel({ isActive, rules, onStatusChange }: OcrPanelProps) {
 
     setImageFile(file)
     setResults([])
+    setAmbiguousResolutions([])
     setErrorMsg('')
     setCopyState('idle')
     setStatus('idle')
@@ -162,6 +173,7 @@ export function OcrPanel({ isActive, rules, onStatusChange }: OcrPanelProps) {
     try {
       setErrorMsg('')
       setResults([])
+      setAmbiguousResolutions([])
 
       setStatus('loading_model')
 
@@ -217,6 +229,7 @@ export function OcrPanel({ isActive, rules, onStatusChange }: OcrPanelProps) {
     setPreviewUrl(null)
     setImageDimensions({ width: 0, height: 0 })
     setResults([])
+    setAmbiguousResolutions([])
     setErrorMsg('')
     setCopyState('idle')
     setStatus('idle')
@@ -228,6 +241,7 @@ export function OcrPanel({ isActive, rules, onStatusChange }: OcrPanelProps) {
   const changeLanguage = (nextLanguage: OcrLanguage) => {
     setLanguage(nextLanguage)
     setResults([])
+    setAmbiguousResolutions([])
     setErrorMsg('')
     setCopyState('idle')
     setStatus('idle')
@@ -235,6 +249,20 @@ export function OcrPanel({ isActive, rules, onStatusChange }: OcrPanelProps) {
 
   const isBusy = status === 'loading_model' || status === 'recognizing'
   const canStart = Boolean(previewUrl) && !isBusy
+
+  const changeAmbiguousResolution = (lineId: string, ruleId: string | null) => {
+    setAmbiguousResolutions((currentResolutions) => {
+      const remainingResolutions = currentResolutions.filter(
+        (resolution) => resolution.lineId !== lineId,
+      )
+
+      if (!ruleId) {
+        return remainingResolutions
+      }
+
+      return [...remainingResolutions, { lineId, selectedRuleId: ruleId }]
+    })
+  }
 
   return (
     <div className="ocr-grid">
@@ -459,7 +487,11 @@ export function OcrPanel({ isActive, rules, onStatusChange }: OcrPanelProps) {
             )}
           </div>
 
-          <ScoreSummaryPanel rulesCount={rules.length} summary={scoreSummary} />
+          <ScoreSummaryPanel
+            rulesCount={rules.length}
+            summary={scoreSummary}
+            onAmbiguousResolutionChange={changeAmbiguousResolution}
+          />
         </div>
       </section>
     </div>

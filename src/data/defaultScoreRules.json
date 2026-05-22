@@ -1,7 +1,7 @@
 [
-  { "text": "發票", "score": 10 },
-  { "text": "統一編號", "score": 8 },
-  { "text": "日期", "score": 5 },
-  { "text": "總計", "score": 5 },
-  { "text": "金額", "score": 5 }
+  { "text": "發票", "score": 10, "matchMode": "exact" },
+  { "text": "統一編號", "score": 8, "matchMode": "exact" },
+  { "text": "日期", "score": 5, "matchMode": "exact" },
+  { "text": "總計", "score": 5, "matchMode": "exact" },
+  { "text": "金額", "score": 5, "matchMode": "exact" }
 ]
