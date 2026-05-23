@@ -409,17 +409,53 @@ function findBestLineMatch(
   }
 }
 
+function containsIgnoredKeyword(text: string, ignoredKeywords: string[]) {
+  return ignoredKeywords.some((keyword) => text.includes(keyword))
+}
+
+function findIgnoredKeyword(text: string, ignoredKeywords: string[]) {
+  return ignoredKeywords.find((keyword) => text.includes(keyword))
+}
+
+function createIgnoredLineMatch(
+  line: RecognizedLine,
+  ignoredKeyword: string,
+): LineMatch {
+  return {
+    lineId: line.id,
+    lineText: line.text,
+    ruleId: '',
+    keyword: ignoredKeyword,
+    score: 0,
+    counted: false,
+    matchType: 'exact',
+    rawDistance: undefined,
+    similarity: undefined,
+    ambiguous: false,
+    resolvedByUser: false,
+    ignored: true,
+  }
+}
+
 export function scoreRecognizedLines(
   lines: RecognizedLine[],
   rules: ScoreRule[],
   resolutions: AmbiguousMatchResolution[] = [],
   options: FuzzySentenceOptions = DEFAULT_FUZZY_SENTENCE_OPTIONS,
+  ignoredKeywords: string[] = [],
 ): ScoreSummary {
   const countedRuleIds = new Set<string>()
   const matches: LineMatch[] = []
   const itemScoreMap = new Map<OcrResult, number>()
   let totalScore = 0
-  const indexedRules = rules.map((rule, index) => ({ rule, index }))
+  const normalizedIgnoredKeywords = ignoredKeywords
+    .map((keyword) => keyword.trim())
+    .filter((keyword) => keyword.length > 0)
+  const indexedRules = rules
+    .map((rule, index) => ({ rule, index }))
+    .filter(
+      ({ rule }) => !containsIgnoredKeyword(rule.text, normalizedIgnoredKeywords),
+    )
   const resolutionMap = new Map(
     resolutions.map((resolution) => [resolution.lineId, resolution]),
   )
@@ -431,6 +467,13 @@ export function scoreRecognizedLines(
   })
 
   lines.forEach((line) => {
+    const ignoredKeyword = findIgnoredKeyword(line.text, normalizedIgnoredKeywords)
+
+    if (ignoredKeyword) {
+      matches.push(createIgnoredLineMatch(line, ignoredKeyword))
+      return
+    }
+
     const lineMatch = findBestLineMatch(
       line,
       indexedRules,
@@ -489,10 +532,13 @@ export function calculateScore(
   rules: ScoreRule[],
   resolutions: AmbiguousMatchResolution[] = [],
   lineGroupingOptions: LineGroupingOptions = DEFAULT_LINE_GROUPING_OPTIONS,
+  ignoredKeywords: string[] = [],
 ): ScoreSummary {
   return scoreRecognizedLines(
     groupOcrResultsIntoLines(results, lineGroupingOptions),
     rules,
     resolutions,
+    DEFAULT_FUZZY_SENTENCE_OPTIONS,
+    ignoredKeywords,
   )
 }

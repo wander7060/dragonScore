@@ -39,6 +39,8 @@ interface CachedOcrService {
   service: PaddleOcrService
 }
 
+type ScoreExclusionMode = 'none' | 'transcendence' | 'intense' | 'both'
+
 const statusLabel: Record<OcrStatus, string> = {
   idle: strings.ocr.statusLabels.idle,
   loading_model: strings.ocr.statusLabels.loading_model,
@@ -50,13 +52,22 @@ const statusLabel: Record<OcrStatus, string> = {
 const MIN_LINE_MERGE_DISTANCE_RATIO = 0.1
 const MAX_LINE_MERGE_DISTANCE_RATIO = 2
 const LINE_MERGE_DISTANCE_STEP = 0.05
+const scoreExclusionOptions: Array<{
+  id: ScoreExclusionMode
+  keywords: string[]
+}> = [
+  { id: 'none', keywords: [] },
+  { id: 'transcendence', keywords: ['超越'] },
+  { id: 'intense', keywords: ['強烈'] },
+  { id: 'both', keywords: ['超越', '強烈'] },
+]
 
-function formatScore(score: number) {
+function formatScore(score: number, showPositiveZero = false) {
   const text = Number.isInteger(score)
     ? String(score)
     : score.toFixed(2).replace(/\.?0+$/, '')
 
-  return score > 0 ? `+${text}` : text
+  return score > 0 || (showPositiveZero && score === 0) ? `+${text}` : text
 }
 
 function formatLineMergeDistance(ratio: number) {
@@ -85,6 +96,10 @@ function getMatchStatus(match: LineMatch) {
   return match.counted
     ? strings.score.status.counted
     : strings.score.status.notCounted
+}
+
+function getVisibleLineScore(lineMatch: LineMatch | undefined, itemScore: number) {
+  return formatScore(itemScore, Boolean(lineMatch?.ignored))
 }
 
 function getLineConfidence(items: OcrResult[]) {
@@ -121,6 +136,9 @@ export function OcrPanel({ isActive, rules, onStatusChange }: OcrPanelProps) {
   const [errorMsg, setErrorMsg] = useState('')
   const [copyState, setCopyState] = useState<'idle' | 'copied'>('idle')
   const [language, setLanguage] = useState<OcrLanguage>('chinese')
+  const [scoreExclusionMode, setScoreExclusionMode] =
+    useState<ScoreExclusionMode>('none')
+  const [hideUnmatchedLines, setHideUnmatchedLines] = useState(true)
   const [lineMergeDistanceRatio, setLineMergeDistanceRatio] = useState(
     DEFAULT_LINE_GROUPING_OPTIONS.centerThresholdRatio,
   )
@@ -129,12 +147,30 @@ export function OcrPanel({ isActive, rules, onStatusChange }: OcrPanelProps) {
   >([])
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const serviceRef = useRef<CachedOcrService | null>(null)
+  const scoreIgnoredKeywords = useMemo(
+    () =>
+      scoreExclusionOptions.find((option) => option.id === scoreExclusionMode)
+        ?.keywords ?? [],
+    [scoreExclusionMode],
+  )
   const scoreSummary = useMemo(
     () =>
-      calculateScore(results, rules, ambiguousResolutions, {
-        centerThresholdRatio: lineMergeDistanceRatio,
-      }),
-    [ambiguousResolutions, lineMergeDistanceRatio, results, rules],
+      calculateScore(
+        results,
+        rules,
+        ambiguousResolutions,
+        {
+          centerThresholdRatio: lineMergeDistanceRatio,
+        },
+        scoreIgnoredKeywords,
+      ),
+    [
+      ambiguousResolutions,
+      lineMergeDistanceRatio,
+      results,
+      rules,
+      scoreIgnoredKeywords,
+    ],
   )
   const scoreByResult = useMemo(
     () =>
@@ -144,6 +180,15 @@ export function OcrPanel({ isActive, rules, onStatusChange }: OcrPanelProps) {
   const matchByLine = useMemo(
     () => new Map(scoreSummary.matches.map((match) => [match.lineId, match])),
     [scoreSummary],
+  )
+  const visibleRecognizedLines = useMemo(
+    () =>
+      hideUnmatchedLines
+        ? scoreSummary.recognizedLines.filter((line) =>
+            matchByLine.has(line.id),
+          )
+        : scoreSummary.recognizedLines,
+    [hideUnmatchedLines, matchByLine, scoreSummary.recognizedLines],
   )
   const selectedLanguage = ocrLanguageOptions.find((option) => option.id === language)
 
@@ -329,6 +374,11 @@ export function OcrPanel({ isActive, rules, onStatusChange }: OcrPanelProps) {
     setStatus('idle')
   }
 
+  const changeScoreExclusionMode = (nextMode: ScoreExclusionMode) => {
+    setScoreExclusionMode(nextMode)
+    setAmbiguousResolutions([])
+  }
+
   const isBusy = status === 'loading_model' || status === 'recognizing'
   const canStart = Boolean(previewUrl) && !isBusy
 
@@ -482,6 +532,25 @@ export function OcrPanel({ isActive, rules, onStatusChange }: OcrPanelProps) {
               <p className="language-meta">{selectedLanguage.description}</p>
             )}
 
+            <label className="language-field">
+              <span>{strings.ocr.scoreExclusionLabel}</span>
+              <select
+                value={scoreExclusionMode}
+                onChange={(event) =>
+                  changeScoreExclusionMode(
+                    event.target.value as ScoreExclusionMode,
+                  )
+                }
+                disabled={isBusy}
+              >
+                {scoreExclusionOptions.map((option) => (
+                  <option key={option.id} value={option.id}>
+                    {strings.ocr.scoreExclusionOptions[option.id]}
+                  </option>
+                ))}
+              </select>
+            </label>
+
             <label className="line-merge-field">
               <span>{strings.ocr.lineMergeLabel}</span>
               <strong>{formatLineMergeDistance(lineMergeDistanceRatio)}</strong>
@@ -513,12 +582,26 @@ export function OcrPanel({ isActive, rules, onStatusChange }: OcrPanelProps) {
             {strings.ocr.resultTitle}
           </h2>
           {results.length > 0 && (
-            <button type="button" className="copy-button" onClick={copyAllText}>
-              <Icon name="copy" />
-              {copyState === 'copied'
-                ? strings.ocr.copyCopied
-                : strings.ocr.copyAll}
-            </button>
+            <div className="result-header-actions">
+              <button
+                type="button"
+                className={`copy-button ${
+                  hideUnmatchedLines ? 'is-active' : ''
+                }`}
+                onClick={() =>
+                  setHideUnmatchedLines((currentValue) => !currentValue)
+                }
+                aria-pressed={hideUnmatchedLines}
+              >
+                {strings.ocr.hideUnmatched}
+              </button>
+              <button type="button" className="copy-button" onClick={copyAllText}>
+                <Icon name="copy" />
+                {copyState === 'copied'
+                  ? strings.ocr.copyCopied
+                  : strings.ocr.copyAll}
+              </button>
+            </div>
           )}
         </div>
 
@@ -546,150 +629,174 @@ export function OcrPanel({ isActive, rules, onStatusChange }: OcrPanelProps) {
 
           <div className="results-box">
             {results.length > 0 ? (
-              <ul className="result-list" aria-label={strings.ocr.resultsAria}>
-                {scoreSummary.recognizedLines.map((line) => {
-                  const itemScore = line.items.reduce(
-                    (sum, item) => sum + (scoreByResult.get(item) ?? 0),
-                    0,
-                  )
-                  const confidence = getLineConfidence(line.items)
-                  const lineMatch = matchByLine.get(line.id)
-                  const isPendingAmbiguous = Boolean(
-                    lineMatch?.ambiguous && !lineMatch.resolvedByUser,
-                  )
+              visibleRecognizedLines.length > 0 ? (
+                <ul className="result-list" aria-label={strings.ocr.resultsAria}>
+                  {visibleRecognizedLines.map((line) => {
+                    const itemScore = line.items.reduce(
+                      (sum, item) => sum + (scoreByResult.get(item) ?? 0),
+                      0,
+                    )
+                    const confidence = getLineConfidence(line.items)
+                    const lineMatch = matchByLine.get(line.id)
+                    const isPendingAmbiguous = Boolean(
+                      lineMatch?.ambiguous && !lineMatch.resolvedByUser,
+                    )
 
-                  return (
-                    <li
-                      className={`result-item ${
-                        isPendingAmbiguous ? 'is-ambiguous' : ''
-                      }`}
-                      key={line.id}
-                    >
-                      <Icon name="check" className="result-check" />
-                      <div className="result-copy">
-                        <p>
-                          {lineMatch ? (
-                            <HighlightedText
-                              text={line.text}
-                              keyword={
-                                lineMatch.matchType === 'exact'
-                                  ? lineMatch.keyword
-                                  : undefined
-                              }
-                            />
-                          ) : (
-                            line.text
-                          )}
-                        </p>
-                        <div className="confidence-row">
-                          <span className="confidence-bar">
-                            <span
-                              className="confidence-fill"
-                              data-level={
-                                confidence > 0.8
-                                  ? 'high'
-                                  : confidence > 0.5
-                                    ? 'medium'
-                                    : 'low'
-                              }
-                              style={{ width: `${confidence * 100}%` }}
-                            />
-                          </span>
-                          <span className="confidence-value">
-                            {(confidence * 100).toFixed(0)}%
-                          </span>
-                        </div>
-
-                        {lineMatch && (
-                          <div className="result-match-details">
-                            <div className="line-match-meta">
-                              <span className="line-match-badge">
-                                {strings.score.matchTypes[lineMatch.matchType]}
-                              </span>
-                              {lineMatch.ambiguous && (
-                                <span className="line-match-badge warning">
-                                  {lineMatch.resolvedByUser
-                                  ? strings.score.status.ambiguityResolved
-                                  : strings.score.status.pending}
-                                </span>
-                              )}
-                              {!isPendingAmbiguous && (
-                                <span
-                                  className={`line-match-badge ${
-                                    lineMatch.counted ? '' : 'muted'
-                                  }`}
-                                >
-                                  {getMatchStatus(lineMatch)}
-                                </span>
-                              )}
-                              {lineMatch.matchType === 'fuzzy' && (
-                                <span className="line-match-badge muted">
-                                  {strings.score.similarityDistance(
-                                    formatSimilarity(lineMatch.similarity),
-                                    lineMatch.rawDistance ?? 0,
-                                  )}
-                                </span>
-                              )}
-                            </div>
-                            {!isPendingAmbiguous && (
-                              <div className="line-match-keyword">
-                                <span>{lineMatch.keyword}</span>
-                                <b>{formatScore(lineMatch.score)}</b>
-                              </div>
-                            )}
-                            {lineMatch.ambiguous && lineMatch.ambiguousOptions && (
-                              <label className="ambiguous-select-field">
-                                <span>{strings.score.ambiguousPrompt}</span>
-                                <select
-                                  value={
-                                    lineMatch.resolvedByUser
-                                      ? lineMatch.ruleId
-                                      : ''
-                                  }
-                                  onChange={(event) =>
-                                    changeAmbiguousResolution(
-                                      lineMatch.lineId,
-                                      event.target.value || null,
-                                    )
-                                  }
-                                >
-                                  <option value="">{strings.score.noApply}</option>
-                                  {lineMatch.ambiguousOptions.map((option) => (
-                                    <option
-                                      key={`${lineMatch.lineId}-${option.ruleId}`}
-                                      value={option.ruleId}
-                                    >
-                                      {strings.score.ambiguousOption(
-                                        option.keyword,
-                                        option.score,
-                                        formatSimilarity(option.similarity),
-                                        option.rawDistance,
-                                      )}
-                                    </option>
-                                  ))}
-                                </select>
-                              </label>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                      <span
-                        className="result-score"
-                        data-score={
-                          itemScore > 0
-                            ? 'positive'
-                            : itemScore < 0
-                              ? 'negative'
-                              : 'zero'
-                        }
-                        aria-label={strings.ocr.itemScoreAria(itemScore)}
+                    return (
+                      <li
+                        className={`result-item ${
+                          isPendingAmbiguous ? 'is-ambiguous' : ''
+                        }`}
+                        key={line.id}
                       >
-                        {formatScore(itemScore)}
-                      </span>
-                    </li>
-                  )
-                })}
-              </ul>
+                        <Icon name="check" className="result-check" />
+                        <div className="result-copy">
+                          <p>
+                            {lineMatch ? (
+                              <HighlightedText
+                                text={line.text}
+                                keyword={
+                                  lineMatch.matchType === 'exact'
+                                    ? lineMatch.keyword
+                                    : undefined
+                                }
+                              />
+                            ) : (
+                              line.text
+                            )}
+                          </p>
+                          <div className="confidence-row">
+                            <span className="confidence-bar">
+                              <span
+                                className="confidence-fill"
+                                data-level={
+                                  confidence > 0.8
+                                    ? 'high'
+                                    : confidence > 0.5
+                                      ? 'medium'
+                                      : 'low'
+                                }
+                                style={{ width: `${confidence * 100}%` }}
+                              />
+                            </span>
+                            <span className="confidence-value">
+                              {(confidence * 100).toFixed(0)}%
+                            </span>
+                          </div>
+
+                          {lineMatch && (
+                            <div className="result-match-details">
+                              <div className="line-match-meta">
+                                {lineMatch.ignored ? (
+                                  <span className="line-match-badge muted">
+                                    {strings.score.status.ignored}
+                                  </span>
+                                ) : (
+                                  <span className="line-match-badge">
+                                    {strings.score.matchTypes[lineMatch.matchType]}
+                                  </span>
+                                )}
+                                {!lineMatch.ignored && lineMatch.ambiguous && (
+                                  <span className="line-match-badge warning">
+                                    {lineMatch.resolvedByUser
+                                      ? strings.score.status.ambiguityResolved
+                                      : strings.score.status.pending}
+                                  </span>
+                                )}
+                                {!lineMatch.ignored && !isPendingAmbiguous && (
+                                  <span
+                                    className={`line-match-badge ${
+                                      lineMatch.counted ? '' : 'muted'
+                                    }`}
+                                  >
+                                    {getMatchStatus(lineMatch)}
+                                  </span>
+                                )}
+                                {lineMatch.matchType === 'fuzzy' && (
+                                  <span className="line-match-badge muted">
+                                    {strings.score.similarityDistance(
+                                      formatSimilarity(lineMatch.similarity),
+                                      lineMatch.rawDistance ?? 0,
+                                    )}
+                                  </span>
+                                )}
+                              </div>
+                              {!isPendingAmbiguous && (
+                                <div className="line-match-keyword">
+                                  <span>{lineMatch.keyword}</span>
+                                  <b>
+                                    {formatScore(
+                                      lineMatch.score,
+                                      lineMatch.ignored,
+                                    )}
+                                  </b>
+                                </div>
+                              )}
+                              {!lineMatch.ignored &&
+                                lineMatch.ambiguous &&
+                                lineMatch.ambiguousOptions && (
+                                  <label className="ambiguous-select-field">
+                                    <span>{strings.score.ambiguousPrompt}</span>
+                                    <select
+                                      value={
+                                        lineMatch.resolvedByUser
+                                          ? lineMatch.ruleId
+                                          : ''
+                                      }
+                                      onChange={(event) =>
+                                        changeAmbiguousResolution(
+                                          lineMatch.lineId,
+                                          event.target.value || null,
+                                        )
+                                      }
+                                    >
+                                      <option value="">
+                                        {strings.score.noApply}
+                                      </option>
+                                      {lineMatch.ambiguousOptions.map(
+                                        (option) => (
+                                          <option
+                                            key={`${lineMatch.lineId}-${option.ruleId}`}
+                                            value={option.ruleId}
+                                          >
+                                            {strings.score.ambiguousOption(
+                                              option.keyword,
+                                              option.score,
+                                              formatSimilarity(option.similarity),
+                                              option.rawDistance,
+                                            )}
+                                          </option>
+                                        ),
+                                      )}
+                                    </select>
+                                  </label>
+                                )}
+                            </div>
+                          )}
+                        </div>
+                        <span
+                          className="result-score"
+                          data-score={
+                            itemScore > 0
+                              ? 'positive'
+                              : itemScore < 0
+                                ? 'negative'
+                                : 'zero'
+                          }
+                          aria-label={strings.ocr.itemScoreAria(itemScore)}
+                        >
+                          {getVisibleLineScore(lineMatch, itemScore)}
+                        </span>
+                      </li>
+                    )
+                  })}
+                </ul>
+              ) : (
+                <div className="empty-state">
+                  <Icon name="scan" />
+                  <p>{strings.ocr.hiddenUnmatchedEmpty}</p>
+                </div>
+              )
             ) : (
               <div className="empty-state">
                 {isBusy ? (

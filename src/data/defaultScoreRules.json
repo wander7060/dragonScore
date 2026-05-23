@@ -1,7 +1,532 @@
 [
-  { "text": "發票", "score": 10, "matchMode": "exact" },
-  { "text": "統一編號", "score": 8, "matchMode": "exact" },
-  { "text": "日期", "score": 5, "matchMode": "exact" },
-  { "text": "總計", "score": 5, "matchMode": "exact" },
-  { "text": "金額", "score": 5, "matchMode": "exact" }
+  {
+    "text": "防禦力",
+    "score": 0,
+    "matchMode": "exact"
+  },
+  {
+    "text": "傷害減少",
+    "score": 0,
+    "matchMode": "exact"
+  },
+  {
+    "text": "動作速度",
+    "score": 0,
+    "matchMode": "exact"
+  },
+  {
+    "text": "武器強化數值每1，物理/魔法攻擊力+1.5%",
+    "score": 9.5,
+    "matchMode": "fuzzySentence"
+  },
+  {
+    "text": "武器強化數值每1，物理/魔法攻擊力+1.4%",
+    "score": 9,
+    "matchMode": "fuzzySentence"
+  },
+  {
+    "text": "武器強化數值每1，物理/魔法攻擊力+1.3%",
+    "score": 8,
+    "matchMode": "fuzzySentence"
+  },
+  {
+    "text": "武器強化數值每1，物理/魔法攻擊力+1.2%",
+    "score": 7.5,
+    "matchMode": "fuzzySentence"
+  },
+  {
+    "text": "武器強化數值每1，物理/魔法攻擊力+1.1%",
+    "score": 7,
+    "matchMode": "fuzzySentence"
+  },
+  {
+    "text": "武器強化數值每1，物理/魔法攻擊力+1%",
+    "score": 6.5,
+    "matchMode": "fuzzySentence"
+  },
+  {
+    "text": "武器強化數值每1，物理/魔法攻擊力+0.9%",
+    "score": 6,
+    "matchMode": "fuzzySentence"
+  },
+  {
+    "text": "武器強化數值每1，物理/魔法攻擊力+0.8%",
+    "score": 5,
+    "matchMode": "fuzzySentence"
+  },
+  {
+    "text": "武器強化數值每1，物理/魔法攻擊力Lv+1.5",
+    "score": 7.5,
+    "matchMode": "fuzzySentence"
+  },
+  {
+    "text": "武器強化數值每1，物理/魔法攻擊力Lv+1.4",
+    "score": 7,
+    "matchMode": "fuzzySentence"
+  },
+  {
+    "text": "武器強化數值每1，物理/魔法攻擊力Lv+1.3",
+    "score": 6.5,
+    "matchMode": "fuzzySentence"
+  },
+  {
+    "text": "武器強化數值每1，物理/魔法攻擊力Lv+1.2",
+    "score": 6,
+    "matchMode": "fuzzySentence"
+  },
+  {
+    "text": "武器強化數值每1，物理/魔法攻擊力Lv+1.1",
+    "score": 5.5,
+    "matchMode": "fuzzySentence"
+  },
+  {
+    "text": "武器強化數值每1，物理/魔法攻擊力Lv+1",
+    "score": 5,
+    "matchMode": "fuzzySentence"
+  },
+  {
+    "text": "武器強化數值每1，物理/魔法攻擊力Lv+0.9",
+    "score": 4.5,
+    "matchMode": "fuzzySentence"
+  },
+  {
+    "text": "武器強化數值每1，物理/魔法攻擊力Lv+0.8",
+    "score": 4,
+    "matchMode": "fuzzySentence"
+  },
+  {
+    "text": "武器強化數值每1，所有技能傷害+1.5%",
+    "score": 8.5,
+    "matchMode": "fuzzySentence"
+  },
+  {
+    "text": "武器強化數值每1，所有技能傷害+1.4%",
+    "score": 8,
+    "matchMode": "fuzzySentence"
+  },
+  {
+    "text": "武器強化數值每1，所有技能傷害+1.3%",
+    "score": 7.5,
+    "matchMode": "fuzzySentence"
+  },
+  {
+    "text": "武器強化數值每1，所有技能傷害+1.2%",
+    "score": 7,
+    "matchMode": "fuzzySentence"
+  },
+  {
+    "text": "武器強化數值每1，所有技能傷害+1.1%",
+    "score": 6.5,
+    "matchMode": "fuzzySentence"
+  },
+  {
+    "text": "武器強化數值每1，所有技能傷害+1%",
+    "score": 6,
+    "matchMode": "fuzzySentence"
+  },
+  {
+    "text": "武器強化數值每1，所有技能傷害+0.9%",
+    "score": 5.5,
+    "matchMode": "fuzzySentence"
+  },
+  {
+    "text": "武器強化數值每1，所有技能傷害+0.8%",
+    "score": 5,
+    "matchMode": "fuzzySentence"
+  },
+  {
+    "text": "武器強化數值每1，致命一擊傷害+1.5%",
+    "score": 7.5,
+    "matchMode": "fuzzySentence"
+  },
+  {
+    "text": "武器強化數值每1，致命一擊傷害+1.4%",
+    "score": 7,
+    "matchMode": "fuzzySentence"
+  },
+  {
+    "text": "武器強化數值每1，致命一擊傷害+1.3%",
+    "score": 6.5,
+    "matchMode": "fuzzySentence"
+  },
+  {
+    "text": "武器強化數值每1，致命一擊傷害+1.2%",
+    "score": 6,
+    "matchMode": "fuzzySentence"
+  },
+  {
+    "text": "武器強化數值每1，致命一擊傷害+1.1%",
+    "score": 5.5,
+    "matchMode": "fuzzySentence"
+  },
+  {
+    "text": "武器強化數值每1，致命一擊傷害+1%",
+    "score": 5,
+    "matchMode": "fuzzySentence"
+  },
+  {
+    "text": "武器強化數值每1，致命一擊傷害+0.9%",
+    "score": 4.5,
+    "matchMode": "fuzzySentence"
+  },
+  {
+    "text": "武器強化數值每1，致命一擊傷害+0.8%",
+    "score": 4,
+    "matchMode": "fuzzySentence"
+  },
+  {
+    "text": "兩極化：攻擊/被擊傷害+12%",
+    "score": 8,
+    "matchMode": "fuzzySentence"
+  },
+  {
+    "text": "兩極化：攻擊/被擊傷害+11%",
+    "score": 7.5,
+    "matchMode": "fuzzySentence"
+  },
+  {
+    "text": "兩極化：攻擊/被擊傷害+10%",
+    "score": 7,
+    "matchMode": "fuzzySentence"
+  },
+  {
+    "text": "兩極化：攻擊/被擊傷害+9%",
+    "score": 6.5,
+    "matchMode": "fuzzySentence"
+  },
+  {
+    "text": "兩極化：攻擊/被擊傷害+8%",
+    "score": 6,
+    "matchMode": "fuzzySentence"
+  },
+  {
+    "text": "兩極化：攻擊/被擊傷害+7%",
+    "score": 5.5,
+    "matchMode": "fuzzySentence"
+  },
+  {
+    "text": "兩極化：攻擊/被擊傷害+6%",
+    "score": 5,
+    "matchMode": "fuzzySentence"
+  },
+  {
+    "text": "根據攻擊時給予的傷害量的13%",
+    "score": 8,
+    "matchMode": "fuzzySentence"
+  },
+  {
+    "text": "根據攻擊時給予的傷害量的12%",
+    "score": 7.5,
+    "matchMode": "fuzzySentence"
+  },
+  {
+    "text": "根據攻擊時給予的傷害量的11%",
+    "score": 7,
+    "matchMode": "fuzzySentence"
+  },
+  {
+    "text": "根據攻擊時給予的傷害量的10%",
+    "score": 6.5,
+    "matchMode": "fuzzySentence"
+  },
+  {
+    "text": "根據攻擊時給予的傷害量的9%",
+    "score": 6,
+    "matchMode": "fuzzySentence"
+  },
+  {
+    "text": "根據攻擊時給予的傷害量的8%",
+    "score": 5.5,
+    "matchMode": "fuzzySentence"
+  },
+  {
+    "text": "根據攻擊時給予的傷害量的7%",
+    "score": 5,
+    "matchMode": "fuzzySentence"
+  },
+  {
+    "text": "根據攻擊時給予的傷害量的6%",
+    "score": 4.5,
+    "matchMode": "fuzzySentence"
+  },
+  {
+    "text": "所有技能傷害+13%",
+    "score": 6.5,
+    "matchMode": "fuzzySentence"
+  },
+  {
+    "text": "所有技能傷害+12%",
+    "score": 6,
+    "matchMode": "fuzzySentence"
+  },
+  {
+    "text": "所有技能傷害+11%",
+    "score": 5.5,
+    "matchMode": "fuzzySentence"
+  },
+  {
+    "text": "所有技能傷害+10%",
+    "score": 5,
+    "matchMode": "fuzzySentence"
+  },
+  {
+    "text": "所有技能傷害+9%",
+    "score": 4.5,
+    "matchMode": "fuzzySentence"
+  },
+  {
+    "text": "所有技能傷害+8%",
+    "score": 4,
+    "matchMode": "fuzzySentence"
+  },
+  {
+    "text": "所有技能傷害+7%",
+    "score": 3.5,
+    "matchMode": "fuzzySentence"
+  },
+  {
+    "text": "所有技能傷害+6%",
+    "score": 3,
+    "matchMode": "fuzzySentence"
+  },
+  {
+    "text": "強烈的技能傷害+13%",
+    "score": 5.5,
+    "matchMode": "fuzzySentence"
+  },
+  {
+    "text": "強烈的技能傷害+12%",
+    "score": 5,
+    "matchMode": "fuzzySentence"
+  },
+  {
+    "text": "強烈的技能傷害+11%",
+    "score": 4.5,
+    "matchMode": "fuzzySentence"
+  },
+  {
+    "text": "強烈的技能傷害+10%",
+    "score": 4,
+    "matchMode": "fuzzySentence"
+  },
+  {
+    "text": "強烈的技能傷害+9%",
+    "score": 3.5,
+    "matchMode": "fuzzySentence"
+  },
+  {
+    "text": "強烈的技能傷害+8%",
+    "score": 3,
+    "matchMode": "fuzzySentence"
+  },
+  {
+    "text": "強烈的技能傷害+7%",
+    "score": 2.5,
+    "matchMode": "fuzzySentence"
+  },
+  {
+    "text": "強烈的技能傷害+6%",
+    "score": 2,
+    "matchMode": "fuzzySentence"
+  },
+  {
+    "text": "超越的技能傷害+13%",
+    "score": 5.5,
+    "matchMode": "fuzzySentence"
+  },
+  {
+    "text": "超越的技能傷害+12%",
+    "score": 5,
+    "matchMode": "fuzzySentence"
+  },
+  {
+    "text": "超越的技能傷害+11%",
+    "score": 4.5,
+    "matchMode": "fuzzySentence"
+  },
+  {
+    "text": "超越的技能傷害+10%",
+    "score": 4,
+    "matchMode": "fuzzySentence"
+  },
+  {
+    "text": "超越的技能傷害+9%",
+    "score": 3.5,
+    "matchMode": "fuzzySentence"
+  },
+  {
+    "text": "超越的技能傷害+8%",
+    "score": 3,
+    "matchMode": "fuzzySentence"
+  },
+  {
+    "text": "超越的技能傷害+7%",
+    "score": 2.5,
+    "matchMode": "fuzzySentence"
+  },
+  {
+    "text": "超越的技能傷害+6%",
+    "score": 2,
+    "matchMode": "fuzzySentence"
+  },
+  {
+    "text": "致命一擊傷害+13%",
+    "score": 5.5,
+    "matchMode": "fuzzySentence"
+  },
+  {
+    "text": "致命一擊傷害+12%",
+    "score": 5,
+    "matchMode": "fuzzySentence"
+  },
+  {
+    "text": "致命一擊傷害+11%",
+    "score": 4.5,
+    "matchMode": "fuzzySentence"
+  },
+  {
+    "text": "致命一擊傷害+10%",
+    "score": 4,
+    "matchMode": "fuzzySentence"
+  },
+  {
+    "text": "致命一擊傷害+9%",
+    "score": 3.5,
+    "matchMode": "fuzzySentence"
+  },
+  {
+    "text": "致命一擊傷害+8%",
+    "score": 3,
+    "matchMode": "fuzzySentence"
+  },
+  {
+    "text": "致命一擊傷害+7%",
+    "score": 2.5,
+    "matchMode": "fuzzySentence"
+  },
+  {
+    "text": "致命一擊傷害+6%",
+    "score": 2,
+    "matchMode": "fuzzySentence"
+  },
+  {
+    "text": "給予Boss傷害增加+15%",
+    "score": 5,
+    "matchMode": "fuzzySentence"
+  },
+  {
+    "text": "給予Boss傷害增加+14%",
+    "score": 4.5,
+    "matchMode": "fuzzySentence"
+  },
+  {
+    "text": "給予Boss傷害增加+13%",
+    "score": 4.5,
+    "matchMode": "fuzzySentence"
+  },
+  {
+    "text": "給予Boss傷害增加+12%",
+    "score": 4,
+    "matchMode": "fuzzySentence"
+  },
+  {
+    "text": "給予Boss傷害增加+11%",
+    "score": 4,
+    "matchMode": "fuzzySentence"
+  },
+  {
+    "text": "給予Boss傷害增加+10%",
+    "score": 3.5,
+    "matchMode": "fuzzySentence"
+  },
+  {
+    "text": "給予Boss傷害增加+9%",
+    "score": 3,
+    "matchMode": "fuzzySentence"
+  },
+  {
+    "text": "給予Boss傷害增加+8%",
+    "score": 2.5,
+    "matchMode": "fuzzySentence"
+  },
+  {
+    "text": "物理攻擊力+13%魔法攻擊力+13%",
+    "score": 7,
+    "matchMode": "fuzzySentence"
+  },
+  {
+    "text": "物理攻擊力+12%魔法攻擊力+12%",
+    "score": 6.5,
+    "matchMode": "fuzzySentence"
+  },
+  {
+    "text": "物理攻擊力+11%魔法攻擊力+11%",
+    "score": 6,
+    "matchMode": "fuzzySentence"
+  },
+  {
+    "text": "物理攻擊力+10%魔法攻擊力+10%",
+    "score": 5.5,
+    "matchMode": "fuzzySentence"
+  },
+  {
+    "text": "物理攻擊力+9%魔法攻擊力+9%",
+    "score": 5,
+    "matchMode": "fuzzySentence"
+  },
+  {
+    "text": "物理攻擊力+8%魔法攻擊力+8%",
+    "score": 4.5,
+    "matchMode": "fuzzySentence"
+  },
+  {
+    "text": "物理攻擊力+7%魔法攻擊力+7%",
+    "score": 4,
+    "matchMode": "fuzzySentence"
+  },
+  {
+    "text": "物理攻擊力+6%魔法攻擊力+6%",
+    "score": 3.5,
+    "matchMode": "fuzzySentence"
+  },
+  {
+    "text": "物理、魔法攻擊力+13Lv",
+    "score": 5.5,
+    "matchMode": "fuzzySentence"
+  },
+  {
+    "text": "物理、魔法攻擊力+12Lv",
+    "score": 5,
+    "matchMode": "fuzzySentence"
+  },
+  {
+    "text": "物理、魔法攻擊力+11Lv",
+    "score": 4.5,
+    "matchMode": "fuzzySentence"
+  },
+  {
+    "text": "物理、魔法攻擊力+10Lv",
+    "score": 4,
+    "matchMode": "fuzzySentence"
+  },
+  {
+    "text": "物理、魔法攻擊力+9Lv",
+    "score": 3.5,
+    "matchMode": "fuzzySentence"
+  },
+  {
+    "text": "物理、魔法攻擊力+8Lv",
+    "score": 3,
+    "matchMode": "fuzzySentence"
+  },
+  {
+    "text": "物理、魔法攻擊力+7Lv",
+    "score": 2.5,
+    "matchMode": "fuzzySentence"
+  },
+  {
+    "text": "物理、魔法攻擊力+6Lv",
+    "score": 2,
+    "matchMode": "fuzzySentence"
+  }
 ]
