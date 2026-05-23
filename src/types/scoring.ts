@@ -41,6 +41,7 @@ export interface LineMatch {
   ambiguous?: boolean
   ambiguousOptions?: AmbiguousMatchOption[]
   resolvedByUser?: boolean
+  ignored?: boolean
 }
 
 export interface ScoredOcrItem {

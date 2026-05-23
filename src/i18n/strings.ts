@@ -3,11 +3,11 @@ import type { MatchMode } from '../types/scoring'
 export const strings = {
   app: {
     workspaceLabel: 'OCR demo workspace',
-    title: 'DragonScore',
+    title: '死龍分數計算',
     tabsLabel: '主要視圖',
     tabs: {
       ocr: 'OCR',
-      settings: '設定',
+      settings: '評分設定',
     },
     poweredBy: 'Powered by ppu-paddle-ocr/web',
   },
@@ -35,7 +35,10 @@ export const strings = {
     resultTitle: '辨識結果',
     copyCopied: '已複製',
     copyAll: '複製全部',
+    hideUnmatched: '隱藏未匹配',
+    hiddenUnmatchedEmpty: '未匹配項目已隱藏。',
     languageLabel: '辨識語言',
+    scoreExclusionLabel: '不計分字詞',
     lineMergeLabel: '句子合併距離',
     lineMergeHint: (distance: string) =>
       `上下中心差距在 ${distance} 字高內合併成一句。`,
@@ -65,6 +68,12 @@ export const strings = {
         label: 'English',
         description: 'PP-OCRv5 英文辨識模型',
       },
+    },
+    scoreExclusionOptions: {
+      none: '無',
+      transcendence: '超越',
+      intense: '強烈',
+      both: '超越 & 強烈',
     },
   },
   settings: {
@@ -147,10 +156,14 @@ export const strings = {
       rangeComment: string,
       ambiguityComment: string,
     ) =>
-      `已計入 ${countedMatches} 個項目，總分為 ${totalScore}。${rangeComment}${ambiguityComment}`,
+      `已計入 ${countedMatches} 個項目，總分為 ${totalScore}。\n${rangeComment}${ambiguityComment}`,
     rangeComments: {
-      zeroToTen: '分數落在 0 至 10 分，符合度偏低，建議補強關鍵項目。',
-      tenToTwenty: '分數落在 10 至 20 分，符合度中等，可再確認細節。',
+      level0: '一坨，請繼續洗。',
+      level1: '堪用，ED不夠可以暫留。',
+      level2: '優質，可等有足夠ED再洗。',
+      level3: '小畢業，可等備份模組繼續洗。',
+      level4: '大畢業，可考慮不繼續洗。',
+      level5: '陽壽-1。'
     },
     unresolvedAmbiguitySuffix: (count: number) =>
       ` 尚有 ${count} 筆未作決議的歧義。`,
@@ -160,6 +173,7 @@ export const strings = {
       selectedNotCounted: '已選擇，未計分',
       counted: '已計分',
       notCounted: '未計分',
+      ignored: '不計分',
       ambiguityResolved: '已決議歧義',
     },
     matchTypes: {

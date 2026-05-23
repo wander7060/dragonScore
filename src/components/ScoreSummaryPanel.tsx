@@ -7,8 +7,9 @@ interface ScoreSummaryPanelProps {
 }
 
 function getScoreComment(summary: ScoreSummary, rulesCount: number) {
-  const countedMatches = summary.matches.filter((match) => match.counted)
-  const unresolvedAmbiguousCount = summary.matches.filter(
+  const effectiveMatches = summary.matches.filter((match) => !match.ignored)
+  const countedMatches = effectiveMatches.filter((match) => match.counted)
+  const unresolvedAmbiguousCount = effectiveMatches.filter(
     (match) => match.ambiguous && !match.resolvedByUser,
   ).length
   const ambiguityComment =
@@ -24,7 +25,7 @@ function getScoreComment(summary: ScoreSummary, rulesCount: number) {
     return strings.score.noRules
   }
 
-  if (summary.matches.length === 0) {
+  if (effectiveMatches.length === 0) {
     return strings.score.noMatches
   }
 
@@ -41,14 +42,24 @@ function getScoreComment(summary: ScoreSummary, rulesCount: number) {
 }
 
 function getScoreRangeComment(totalScore: number) {
-  if (totalScore >= 0 && totalScore <= 10) {
-    return strings.score.rangeComments.zeroToTen
+  if (totalScore < 22) {
+    return strings.score.rangeComments.level0
   }
-
-  if (totalScore > 10 && totalScore <= 20) {
-    return strings.score.rangeComments.tenToTwenty
+  if (totalScore >= 22 && totalScore < 24) {
+    return strings.score.rangeComments.level1
   }
-
+  if (totalScore >= 24 && totalScore < 26) {
+    return strings.score.rangeComments.level2
+  }
+  if (totalScore >= 26 && totalScore < 28) {
+    return strings.score.rangeComments.level3
+  }
+  if (totalScore >= 28 && totalScore < 30) {
+    return strings.score.rangeComments.level4
+  }
+  if (totalScore >= 30) {
+    return strings.score.rangeComments.level5
+  }
   return ''
 }
 
