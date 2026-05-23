@@ -140,8 +140,8 @@ export const strings = {
   },
   score: {
     summaryAria: 'OCR score summary',
-    summaryTitle: '評分摘要',
-    totalScore: '總分',
+    summaryTitle: '總分',
+    totalScore: '',
     commentLabel: '評語',
     countedKeywordsAria: '已計分關鍵字',
     lineMatchesAria: '行級評分匹配',
@@ -151,12 +151,10 @@ export const strings = {
     duplicateOrAmbiguous: (ambiguityComment: string) =>
       `僅找到重複匹配或未決議歧義，總分未增加。${ambiguityComment}`,
     countedSummary: (
-      countedMatches: number,
-      totalScore: number,
       rangeComment: string,
       ambiguityComment: string,
     ) =>
-      `已計入 ${countedMatches} 個項目，總分為 ${totalScore}。\n${rangeComment}${ambiguityComment}`,
+      `${rangeComment}${ambiguityComment}`,
     rangeComments: {
       level0: '一坨，請繼續洗。',
       level1: '堪用，ED不夠可以暫留。',

@@ -34,8 +34,6 @@ function getScoreComment(summary: ScoreSummary, rulesCount: number) {
   }
 
   return strings.score.countedSummary(
-    countedMatches.length,
-    summary.totalScore,
     getScoreRangeComment(summary.totalScore),
     ambiguityComment,
   )
@@ -75,7 +73,6 @@ export function ScoreSummaryPanel({
       <div className="score-header">
         <div>
           <h3>{strings.score.summaryTitle}</h3>
-          <p>{strings.score.totalScore}</p>
         </div>
         <strong>{summary.totalScore}</strong>
       </div>
